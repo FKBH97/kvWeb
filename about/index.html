@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Space Exploration - About</title>
+  <link rel="stylesheet" href="styles/about-styles.css">
+  <!-- Import Three.js from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r133/three.min.js"></script>
+  <!-- OrbitControls for debugging -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.133.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+  <div id="scene-container"></div>
+  
+  <!-- HUD Elements -->
+  <div id="hud-container">
+    <div id="speed-indicator" class="hud-element">
+      <div class="hud-label">SPEED</div>
+      <div id="speed-value">0.00</div>
+    </div>
+    
+    <div id="boost-indicator" class="hud-element">
+      <div class="hud-label">BOOST</div>
+      <div id="boost-status">READY</div>
+    </div>
+    
+    <div id="planet-info" class="hud-element">
+      <div class="hud-label">NEARBY</div>
+      <div id="planet-name">NONE</div>
+    </div>
+
+    <div id="docking-prompt" class="hud-element hidden">
+      <div id="docking-text">PRESS E TO DOCK</div>
+    </div>
+
+    <div id="ai-copilot" class="hud-element hidden">
+      <div class="hud-label">AI CO-PILOT</div>
+      <div id="ai-message"></div>
+    </div>
+
+    <div id="ftl-button" class="hud-element">
+      <div id="ftl-text">FTL JUMP</div>
+    </div>
+  </div>
+
+  <!-- Debug Elements (hidden by default) -->
+  <div id="debug-panel" class="hidden">
+    <div class="debug-element">FPS: <span id="fps-counter">0</span></div>
+    <div class="debug-element">Position: <span id="position-display">X: 0, Y: 0, Z: 0</span></div>
+    <div class="debug-element">Nearest: <span id="nearest-object">None</span></div>
+  </div>
+
+  <!-- Notification System -->
+  <div id="notification-container" class="hidden"></div>
+
+  <!-- Scripts -->
+  <!-- Helper Scripts -->
+  <script src="../helpers/sceneSetup.js"></script>
+  <script src="../helpers/rocketControls.js"></script>
+  <script src="../helpers/hudManager.js"></script>
+  <script src="../helpers/dockingSystem.js"></script>
+  <script src="../helpers/ftlSystem.js"></script>
+  <script src="../helpers/debugMode.js"></script>
+  <script src="../helpers/loggingSystem.js"></script>
+  <script src="../helpers/starfield.js"></script>
+  
+  <!-- Page-Specific Components -->
+  <script src="components/planetSetup.js"></script>
+  <script src="components/sunSetup.js"></script>
+  
+  <!-- Main Entry Point -->
+  <script src="about.js"></script>
+</body>
+</html>

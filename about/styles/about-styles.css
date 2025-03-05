@@ -1,0 +1,239 @@
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #000000; /* Space-black background */
+    font-family: 'Orbitron', 'Exo 2', sans-serif;
+    color: #A0A0A0; /* Primary HUD Text Color */
+  }
+  
+  /* Scene Container (Three.js Canvas) */
+  #scene-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+  
+  /* HUD Container */
+  #hud-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none; /* Allow clicking through HUD to interact with scene */
+  }
+  
+  /* HUD Elements */
+  .hud-element {
+    position: absolute;
+    background-color: rgba(34, 40, 49, 0.7); /* Semi-transparent dark gray */
+    border-radius: 5px;
+    padding: 10px;
+    box-shadow: 0 0 10px rgba(0, 163, 224, 0.5); /* Soft glow with secondary color */
+  }
+  
+  /* HUD Labels */
+  .hud-label {
+    font-size: 12px;
+    color: #00A3E0; /* Secondary HUD Elements color */
+    margin-bottom: 5px;
+    letter-spacing: 1px;
+  }
+  
+  /* Speed Indicator */
+  #speed-indicator {
+    top: 20px;
+    left: 20px;
+    width: 120px;
+  }
+  
+  #speed-value {
+    font-size: 18px;
+    font-weight: bold;
+  }
+  
+  /* Boost Indicator */
+  #boost-indicator {
+    top: 20px;
+    left: 160px;
+    width: 120px;
+  }
+  
+  #boost-status {
+    font-size: 18px;
+    font-weight: bold;
+  }
+  
+  #boost-status.ready {
+    color: #00FF00; /* Bright Green for active boost */
+  }
+  
+  #boost-status.cooldown {
+    color: #FFA500; /* Orange for cooldown */
+  }
+  
+  /* Planet Info */
+  #planet-info {
+    top: 20px;
+    right: 20px;
+    width: 150px;
+    text-align: right;
+  }
+  
+  #planet-name {
+    font-size: 18px;
+    font-weight: bold;
+  }
+  
+  /* Docking Prompt */
+  #docking-prompt {
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 15px 25px;
+    animation: pulse 2s infinite;
+  }
+  
+  #docking-text {
+    font-size: 22px;
+    font-weight: bold;
+    color: #00A3E0; /* Secondary HUD Elements color */
+  }
+  
+  /* AI Co-Pilot Messages */
+  #ai-copilot {
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    max-width: 600px;
+    text-align: center;
+    padding: 15px;
+  }
+  
+  #ai-message {
+    font-size: 16px;
+    line-height: 1.4;
+  }
+  
+  /* FTL Button */
+  #ftl-button {
+    bottom: 20px;
+    right: 20px;
+    padding: 15px;
+    pointer-events: auto; /* Make FTL button clickable */
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  #ftl-button:hover {
+    background-color: rgba(85, 0, 136, 0.8); /* FTL Button hover state */
+  }
+  
+  #ftl-text {
+    font-size: 18px;
+    font-weight: bold;
+    color: #550088; /* FTL Button color */
+  }
+  
+  /* Debug Panel */
+  #debug-panel {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(34, 40, 49, 0.9);
+    border: 1px solid #00A3E0;
+    border-radius: 5px;
+    padding: 10px;
+    z-index: 10;
+    font-family: monospace;
+    font-size: 14px;
+  }
+  
+  .debug-element {
+    margin: 5px 0;
+  }
+  
+  /* Notification Container */
+  #notification-container {
+    position: absolute;
+    top: 100px;
+    right: 20px;
+    width: 300px;
+    z-index: 5;
+  }
+  
+  .notification {
+    background-color: rgba(34, 40, 49, 0.9);
+    margin-bottom: 10px;
+    padding: 15px;
+    border-radius: 5px;
+    border-left: 4px solid #00A3E0;
+    animation: fadeIn 0.5s;
+  }
+  
+  /* Utility Classes */
+  .hidden {
+    display: none;
+  }
+  
+  /* Animations */
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes fadeOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-20px); }
+  }
+  
+  /* For text animation effects (flickering, soft glow) */
+  .text-flicker {
+    animation: textFlicker 3s infinite alternate;
+  }
+  
+  @keyframes textFlicker {
+    0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% {
+      opacity: 1;
+    }
+    20%, 21.999%, 63%, 63.999%, 65%, 69.999% {
+      opacity: 0.5;
+    }
+  }
+  
+  /* Responsive design for different screen sizes */
+  @media (max-width: 768px) {
+    .hud-element {
+      padding: 8px;
+    }
+    
+    #speed-indicator, #boost-indicator {
+      width: 100px;
+    }
+    
+    #docking-text, #ftl-text {
+      font-size: 16px;
+    }
+    
+    #ai-copilot {
+      width: 80%;
+    }
+  }
