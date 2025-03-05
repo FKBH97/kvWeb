@@ -1,0 +1,121 @@
+# **05_Development_Phases.md**
+
+### **✅ Fully Detailed Development Phases & Checklists (Maximum Clarity)**  
+
+This version includes **even more granular details**, ensuring that a **new model or developer** would know **exactly** what gets built in each phase.  
+
+---
+
+## **📌 1️⃣ Overview of Development Phases**  
+Each phase is structured so that **each feature is fully implemented and tested** before moving on.  
+
+```plaintext
+Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7 → Final Testing
+```
+
+✔ **Every system is self-contained per phase** → No dependencies left incomplete.  
+✔ **Progress tracking ensures nothing is skipped**.  
+
+---
+
+## **📌 2️⃣ Fully Detailed Development Checklist**  
+
+### **🚀 Phase 1: Initial Setup**  
+**Goal:** Establish the **core project structure** and initialize **Three.js with a functional rendering system**.  
+
+✅ **File & Folder Setup**  
+- [ ] Create **project directory structure** under `kvWeb/`.  
+- [ ] Set up **index.html** for About Page.  
+- [ ] Create `about.js` as the **entry point** for logic.  
+- [ ] Set up **styles directory** and create `about-styles.css`.  
+- [ ] Create `helpers/` for shared scripts (scene setup, HUD, FTL, etc.).  
+
+✅ **Three.js Scene Initialization (`sceneSetup.js`)**  
+- [ ] Initialize **Three.js renderer, camera, and scene**.  
+- [ ] Create **a perspective camera with default positioning**.  
+- [ ] Add **orbit controls** for debugging camera movement.  
+- [ ] Implement **basic ambient and directional lighting**.  
+- [ ] Render **a placeholder object (test sphere) to confirm scene is active**.  
+
+✅ **Testing & Debugging**  
+- [ ] Load `index.html` in a browser → Confirm **scene renders without errors**.  
+- [ ] Ensure **camera movement is functional**.  
+- [ ] Console log **scene initialization success**.  
+
+---
+
+### **☀️ Phase 2: Sun & Planetary System**  
+**Goal:** Implement the **sun with an animated corona**, then add **hardcoded planets with accurate orbits and rotations**.  
+
+✅ **Sun Implementation (`sunSetup.js`)**  
+- [ ] Create a **high-resolution sphere** for the sun.  
+- [ ] Apply **emissive material** for natural glow.  
+- [ ] Add **a soft animated corona effect** for realism.  
+- [ ] Adjust **lighting intensity to simulate real sun glare**.  
+
+✅ **Hardcoded Planets & Orbits (`planetSetup.js`)**  
+- [ ] Create **an array of planet objects** (Earth, Mars, etc.).  
+- [ ] Assign **correct textures, sizes, and distances** for realism.  
+- [ ] Set **realistic axial tilt and rotation speed**.  
+- [ ] Implement **circular orbits using simple trigonometry**.  
+- [ ] Ensure planets **update position per frame** (animate orbits).  
+
+✅ **Moons & Rings**  
+- [ ] Add **Luna (Earth’s moon) as a generated planet**.  
+- [ ] Store **Phobos & Deimos as 3D models** in `models/`.  
+- [ ] Implement **simple circular orbits for moons**.  
+- [ ] Add **ring systems for Saturn & Uranus using transparent textures**.  
+
+✅ **Testing & Debugging**  
+- [ ] Verify **planet orbits** are smooth and correctly positioned.  
+- [ ] Ensure **sun corona effect animates without performance drops**.  
+
+---
+
+### **🚀 Phase 3: Rocket & Navigation Mechanics**  
+**Goal:** Implement **player movement, boosting, and collision detection**.  
+
+✅ **Rocket Model & Scene Integration**  
+- [ ] Load **rocket model** into the scene.  
+- [ ] Position **starting point near Earth**.  
+
+✅ **Movement System (`rocketControls.js`)**  
+- [ ] Implement **WASD movement controls**.  
+- [ ] Apply **acceleration-based movement (smooth movement, no instant stops)**.  
+- [ ] Enable **camera to track the rocket** dynamically.  
+
+✅ **Boosting System**  
+- [ ] Assign **Shift key to temporary speed boost**.  
+- [ ] Implement **boost cooldown & visual indicator in HUD**.  
+
+✅ **Collision Handling**  
+- [ ] Implement **bounding sphere collisions for planets**.  
+- [ ] Prevent **player from flying through planets**.  
+
+✅ **Testing & Debugging**  
+- [ ] Verify **movement & boost behavior**.  
+- [ ] Ensure **collision system properly stops movement near planets**.  
+
+---
+
+### **📡 Phase 4: HUD & User Interface**  
+**Goal:** Implement the **HUD system to display essential player information**.  
+
+✅ **HUD Framework (`hudManager.js`)**  
+- [ ] Create **basic HUD layout** for displaying data.  
+- [ ] Implement **modular HUD panels** for flexibility.  
+
+✅ **Dynamic Information Display**  
+- [ ] Display **current speed & boost status**.  
+- [ ] Show **current planet name when nearby**.  
+- [ ] Implement **AI co-pilot message notifications**.  
+- [ ] Create **docking prompt system (if near a planet, show "Press E to Dock")**.  
+
+✅ **Testing & Debugging**  
+- [ ] Ensure **HUD updates dynamically as the player moves**.  
+
+---
+
+## **📌 ✅ Next Step: Debug Mode & Logging Strategy**  
+Would you like **any refinements or additions** before moving to **Debug Mode & Logging Strategy**? 🚀📜
+
