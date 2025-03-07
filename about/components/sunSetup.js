@@ -12,8 +12,8 @@ const SunSetup = (function() {
     
     // Constants
     const SUN_RADIUS = 10;
-    const CORONA_RADIUS = 15;
-    const OUTER_CORONA_RADIUS = 30;
+    const CORONA_RADIUS = 10.5;
+    const OUTER_CORONA_RADIUS = 11;
     
     return {
         /**
@@ -35,7 +35,7 @@ const SunSetup = (function() {
                 
                 // Create sun geometry and material
                 const sunGeometry = new THREE.SphereGeometry(SUN_RADIUS, 64, 64);
-                const sunMaterial = new THREE.MeshBasicMaterial({
+                const sunMaterial = new THREE.MeshPhongMaterial({
                     map: sunTexture,
                     color: 0xFFDD66,
                     emissive: 0xFF9900,

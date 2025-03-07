@@ -5,14 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Space Exploration - About</title>
   <link rel="stylesheet" href="styles/about-styles.css">
+  
   <!-- Import Three.js from CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r133/three.min.js"></script>
-  <!-- OrbitControls for debugging -->
+  
+  <!-- Three.js Extensions -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.133.0/examples/js/controls/OrbitControls.js"></script>
-  <!-- OBJLoader for loading 3D models -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.133.0/examples/js/loaders/OBJLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.133.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
+  <!-- 3D Scene Container -->
   <div id="scene-container"></div>
   
   <!-- HUD Elements -->
@@ -46,7 +49,7 @@
     </div>
   </div>
 
-  <!-- Debug Elements (hidden by default) -->
+  <!-- Debug Panel (hidden by default) -->
   <div id="debug-panel" class="hidden">
     <div class="debug-element">FPS: <span id="fps-counter">0</span></div>
     <div class="debug-element">Position: <span id="position-display">X: 0, Y: 0, Z: 0</span></div>
@@ -56,22 +59,31 @@
   <!-- Notification System -->
   <div id="notification-container" class="hidden"></div>
 
-  <!-- Scripts -->
-  <!-- Helper Scripts -->
+  <!-- Load Scripts in Correct Order -->
+  <!-- 1. Core Utilities -->
   <script src="../helpers/sceneSetup.js"></script>
-  <script src="../helpers/rocketControls.js"></script>
-  <script src="../helpers/hudManager.js"></script>
-  <script src="../helpers/dockingSystem.js"></script>
-  <script src="../helpers/ftlSystem.js"></script>
+  <script src="../helpers/inputManager.js"></script>
+  
+  <!-- 2. Debug Tools (Early for Error Reporting) -->
   <script src="../helpers/debugMode.js"></script>
   <script src="../helpers/loggingSystem.js"></script>
+  
+  <!-- 3. UI Systems -->
+  <script src="../helpers/hudManager.js"></script>
+  
+  <!-- 4. Environment & Stars -->
   <script src="../helpers/starfield.js"></script>
   
-  <!-- Page-Specific Components -->
-  <script src="components/planetSetup.js"></script>
+  <!-- 5. Planet Components -->
   <script src="components/sunSetup.js"></script>
+  <script src="components/planetSetup.js"></script>
   
-  <!-- Main Entry Point -->
+  <!-- 6. Rocket & Interaction Systems -->
+  <script src="../helpers/rocketControls.js"></script>
+  <script src="../helpers/dockingSystem.js"></script>
+  <script src="../helpers/ftlSystem.js"></script>
+  
+  <!-- 7. Main Entry Point -->
   <script src="about.js"></script>
 </body>
 </html>
