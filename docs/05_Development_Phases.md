@@ -24,23 +24,23 @@ Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7 
 **Goal:** Establish the **core project structure** and initialize **Three.js with a functional rendering system**.  
 
 ✅ **File & Folder Setup**  
-- [ ] Create **project directory structure** under `kvWeb/`.  
-- [ ] Set up **index.html** for About Page.  
-- [ ] Create `about.js` as the **entry point** for logic.  
-- [ ] Set up **styles directory** and create `about-styles.css`.  
-- [ ] Create `helpers/` for shared scripts (scene setup, HUD, FTL, etc.).  
+- [x] Create **project directory structure** under `kvWeb/`.  
+- [x] Set up **index.html** for About Page.  
+- [x] Create `about.js` as the **entry point** for logic.  
+- [x] Set up **styles directory** and create `about-styles.css`.  
+- [x] Create `helpers/` for shared scripts (scene setup, HUD, FTL, etc.).  
 
 ✅ **Three.js Scene Initialization (`sceneSetup.js`)**  
-- [ ] Initialize **Three.js renderer, camera, and scene**.  
-- [ ] Create **a perspective camera with default positioning**.  
-- [ ] Add **orbit controls** for debugging camera movement.  
-- [ ] Implement **basic ambient and directional lighting**.  
-- [ ] Render **a placeholder object (test sphere) to confirm scene is active**.  
+- [x] Initialize **Three.js renderer, camera, and scene**.  
+- [x] Create **a perspective camera with default positioning**.  
+- [x] Add **orbit controls** for debugging camera movement.  
+- [x] Implement **basic ambient and directional lighting**.  
+- [x] Render **a placeholder object (test sphere) to confirm scene is active**.  
 
 ✅ **Testing & Debugging**  
-- [ ] Load `index.html` in a browser → Confirm **scene renders without errors**.  
-- [ ] Ensure **camera movement is functional**.  
-- [ ] Console log **scene initialization success**.  
+- [x] Load `index.html` in a browser → Confirm **scene renders without errors**.  
+- [x] Ensure **camera movement is functional**.  
+- [x] Console log **scene initialization success**.  
 
 ---
 
@@ -48,23 +48,23 @@ Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7 
 **Goal:** Implement the **sun with an animated corona**, then add **hardcoded planets with accurate orbits and rotations**.  
 
 ✅ **Sun Implementation (`sunSetup.js`)**  
-- [ ] Create a **high-resolution sphere** for the sun.  
-- [ ] Apply **emissive material** for natural glow.  
+- [x] Create a **high-resolution sphere** for the sun.  
+- [x] Apply **emissive material** for natural glow.  
 - [ ] Add **a soft animated corona effect** for realism.  
-- [ ] Adjust **lighting intensity to simulate real sun glare**.  
+- [x] Adjust **lighting intensity to simulate real sun glare**.  
 
 ✅ **Hardcoded Planets & Orbits (`planetSetup.js`)**  
-- [ ] Create **an array of planet objects** (Earth, Mars, etc.).  
-- [ ] Assign **correct textures, sizes, and distances** for realism.  
-- [ ] Set **realistic axial tilt and rotation speed**.  
+- [x] Create **an array of planet objects** (Earth, Mars, etc.).  
+- [x] Assign **correct textures, sizes, and distances** for realism.  
+- [x] Set **realistic axial tilt and rotation speed**.  
 - [ ] Implement **circular orbits using simple trigonometry**.  
 - [ ] Ensure planets **update position per frame** (animate orbits).  
 
 ✅ **Moons & Rings**  
-- [ ] Add **Luna (Earth’s moon) as a generated planet**.  
-- [ ] Store **Phobos & Deimos as 3D models** in `models/`.  
-- [ ] Implement **simple circular orbits for moons**.  
-- [ ] Add **ring systems for Saturn & Uranus using transparent textures**.  
+- [x] Add **Luna (Earth’s moon) as a generated planet**.  
+- [x] Store **Phobos & Deimos as 3D models** in `models/`.  
+- [x] Implement **simple circular orbits for moons**.  
+- [x] Add **ring systems for Saturn & Uranus using transparent textures**.  
 
 ✅ **Testing & Debugging**  
 - [ ] Verify **planet orbits** are smooth and correctly positioned.  
