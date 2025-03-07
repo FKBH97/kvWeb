@@ -88,7 +88,7 @@ function update(timestamp) {
     
     // Update planet positions if PlanetSetup exists
     if (PlanetSetup && PlanetSetup.updatePlanetPositions) {
-      PlanetSetup.updatePlanetPositions(timeElapsed);
+      PlanetSetup.updatePlanetPositions(deltaSeconds);
     }
     
     // Update debug panel if visible
@@ -193,6 +193,14 @@ function setupKeyboardControls() {
           SceneSetup.getControls().target.set(0, 0, 0);
         }
         showNotification('Camera position reset');
+      }
+    }
+    
+    // Press 'O' to toggle orbit lines
+    if (event.key === 'o' || event.key === 'O') {
+      if (PlanetSetup && PlanetSetup.toggleOrbitLines) {
+        const orbitsVisible = PlanetSetup.toggleOrbitLines();
+        showNotification(`Orbit lines ${orbitsVisible ? 'shown' : 'hidden'}`);
       }
     }
   });

@@ -48,23 +48,23 @@ Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7 
 **Goal:** Implement the **sun with an animated corona**, then add **hardcoded planets with accurate orbits and rotations**.  
 
 ✅ **Sun Implementation (`sunSetup.js`)**  
-- [ ] Create a **high-resolution sphere** for the sun.  
-- [ ] Apply **emissive material** for natural glow.  
+- [x] Create a **high-resolution sphere** for the sun.  
+- [x] Apply **emissive material** for natural glow.  
 - [ ] Add **a soft animated corona effect** for realism.  
-- [ ] Adjust **lighting intensity to simulate real sun glare**.  
+- [x] Adjust **lighting intensity to simulate real sun glare**.  
 
 ✅ **Hardcoded Planets & Orbits (`planetSetup.js`)**  
-- [ ] Create **an array of planet objects** (Earth, Mars, etc.).  
-- [ ] Assign **correct textures, sizes, and distances** for realism.  
-- [ ] Set **realistic axial tilt and rotation speed**.  
+- [x] Create **an array of planet objects** (Earth, Mars, etc.).  
+- [x] Assign **correct textures, sizes, and distances** for realism.  
+- [x] Set **realistic axial tilt and rotation speed**.  
 - [ ] Implement **circular orbits using simple trigonometry**.  
 - [ ] Ensure planets **update position per frame** (animate orbits).  
 
 ✅ **Moons & Rings**  
-- [ ] Add **Luna (Earth’s moon) as a generated planet**.  
-- [ ] Store **Phobos & Deimos as 3D models** in `models/`.  
-- [ ] Implement **simple circular orbits for moons**.  
-- [ ] Add **ring systems for Saturn & Uranus using transparent textures**.  
+- [x] Add **Luna (Earth’s moon) as a generated planet**.  
+- [x] Store **Phobos & Deimos as 3D models** in `models/`.  
+- [x] Implement **simple circular orbits for moons**.  
+- [x] Add **ring systems for Saturn & Uranus using transparent textures**.  
 
 ✅ **Testing & Debugging**  
 - [ ] Verify **planet orbits** are smooth and correctly positioned.  
