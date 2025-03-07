@@ -24,23 +24,23 @@ Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7 
 **Goal:** Establish the **core project structure** and initialize **Three.js with a functional rendering system**.  
 
 ✅ **File & Folder Setup**  
-- [ ] Create **project directory structure** under `kvWeb/`.  
-- [ ] Set up **index.html** for About Page.  
-- [ ] Create `about.js` as the **entry point** for logic.  
-- [ ] Set up **styles directory** and create `about-styles.css`.  
-- [ ] Create `helpers/` for shared scripts (scene setup, HUD, FTL, etc.).  
+- [x] Create **project directory structure** under `kvWeb/`.  
+- [x] Set up **index.html** for About Page.  
+- [x] Create `about.js` as the **entry point** for logic.  
+- [x] Set up **styles directory** and create `about-styles.css`.  
+- [x] Create `helpers/` for shared scripts (scene setup, HUD, FTL, etc.).  
 
 ✅ **Three.js Scene Initialization (`sceneSetup.js`)**  
-- [ ] Initialize **Three.js renderer, camera, and scene**.  
-- [ ] Create **a perspective camera with default positioning**.  
-- [ ] Add **orbit controls** for debugging camera movement.  
-- [ ] Implement **basic ambient and directional lighting**.  
-- [ ] Render **a placeholder object (test sphere) to confirm scene is active**.  
+- [x] Initialize **Three.js renderer, camera, and scene**.  
+- [x] Create **a perspective camera with default positioning**.  
+- [x] Add **orbit controls** for debugging camera movement.  
+- [x] Implement **basic ambient and directional lighting**.  
+- [x] Render **a placeholder object (test sphere) to confirm scene is active**.  
 
 ✅ **Testing & Debugging**  
-- [ ] Load `index.html` in a browser → Confirm **scene renders without errors**.  
-- [ ] Ensure **camera movement is functional**.  
-- [ ] Console log **scene initialization success**.  
+- [x] Load `index.html` in a browser → Confirm **scene renders without errors**.  
+- [x] Ensure **camera movement is functional**.  
+- [x] Console log **scene initialization success**.  
 
 ---
 
