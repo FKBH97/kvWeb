@@ -56,7 +56,7 @@ const FTLSystem = (function() {
             padding: 20px;
             color: #FFFFFF;
             z-index: 200;
-            display: flex;
+            display: none;
             flex-direction: column;
             gap: 15px;
             box-shadow: 0 0 30px rgba(85, 0, 136, 0.5);
@@ -229,8 +229,16 @@ const FTLSystem = (function() {
         closeButton.onmouseout = function() {
             this.style.backgroundColor = '#333333';
         };
-        closeButton.onclick = function() {
+        closeButton.onclick = function(event) {
+            // Ensure the event doesn't propagate
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // Call close function
             closeFTLMenu();
+            
+            // For debugging
+            console.log('Close button clicked');
         };
         
         buttonContainer.appendChild(closeButton);
@@ -321,7 +329,10 @@ const FTLSystem = (function() {
     function showFTLMenu() {
         if (!ftlMenu) createFTLMenu();
         
+        console.log('Opening FTL menu...');
+        
         ftlMenu.classList.remove('hidden');
+        ftlMenu.style.display = 'flex';
         ftlMenuOpen = true;
         
         // Disable rocket controls if available
@@ -335,6 +346,8 @@ const FTLSystem = (function() {
                 time: Date.now()
             });
         }
+        
+        console.log('FTL menu opened');
     }
     
     /**
@@ -343,13 +356,22 @@ const FTLSystem = (function() {
     function closeFTLMenu() {
         if (!ftlMenu) return;
         
+        console.log('Closing FTL menu...');
+        
         ftlMenu.classList.add('hidden');
+        ftlMenu.style.display = 'none';
         ftlMenuOpen = false;
         
         // Re-enable rocket controls if available
         if (typeof RocketControls !== 'undefined' && RocketControls.setEnabled) {
             RocketControls.setEnabled(true);
         }
+        
+        console.log('FTL menu closed, menu state:', {
+            classList: ftlMenu.classList.contains('hidden') ? 'has hidden class' : 'no hidden class',
+            display: ftlMenu.style.display,
+            ftlMenuOpen: ftlMenuOpen
+        });
     }
     
     /**
@@ -382,6 +404,7 @@ const FTLSystem = (function() {
         // Hide menu
         if (ftlMenu) {
             ftlMenu.classList.add('hidden');
+            ftlMenu.style.display = 'none';
         }
         
         // Show overlay with animation
@@ -413,6 +436,13 @@ const FTLSystem = (function() {
             
             // Create FTL menu
             createFTLMenu();
+            
+            // IMPORTANT: Make sure it starts hidden
+            if (ftlMenu) {
+                ftlMenu.classList.add('hidden');
+                ftlMenu.style.display = 'none';
+                ftlMenuOpen = false;
+            }
             
             // Add listener to FTL button in HUD
             const ftlButton = document.getElementById('ftl-button');

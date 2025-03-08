@@ -128,8 +128,8 @@ const RocketControls = (function() {
                 rocketLight.intensity = isBoosting ? 2.0 : 1.0;
             }
         } else {
-            // Small idle flare
-            const idleScale = 0.4 + Math.random() * 0.1;
+            // Small idle flare - FIXED: No random variation when idle
+            const idleScale = 0.4; // Removed random variation to prevent spasming
             flare.scale.set(idleScale, idleScale, idleScale);
             
             // Dim engine light
@@ -256,7 +256,15 @@ const RocketControls = (function() {
             try {
                 // Create a simple rocket model as a placeholder
                 rocket = createSimpleRocket();
-                rocket.position.copy(position);
+                
+                // Ensure the rocket starts with zero velocity and acceleration
+                velocity = new THREE.Vector3(0, 0, 0);
+                acceleration = new THREE.Vector3(0, 0, 0);
+                
+                // Initialize the position to a good starting point
+                this.resetPosition();
+                
+                // Add rocket to scene AFTER setting position
                 scene.add(rocket);
                 
                 console.log('Rocket initialized successfully with placeholder model');
@@ -294,9 +302,6 @@ const RocketControls = (function() {
                 }
                 */
                 
-                // Initialize the position to a good starting point
-                this.resetPosition();
-                
                 // Log successful initialization
                 if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logEvent) {
                     LoggingSystem.logEvent('rocket_initialized', {
@@ -325,6 +330,9 @@ const RocketControls = (function() {
                 // Check if input is available
                 const inputAvailable = typeof InputManager !== 'undefined' && InputManager.isKeyPressed;
                 
+                // Track if any movement keys are pressed
+                let isAnyMovementKeyPressed = false;
+                
                 if (inputAvailable) {
                     // Reset acceleration
                     acceleration.set(0, 0, 0);
@@ -336,6 +344,10 @@ const RocketControls = (function() {
                     const isMovingUp = InputManager.isKeyPressed('q');
                     const isMovingDown = InputManager.isKeyPressed('e');
                     const isMovingBack = InputManager.isKeyPressed('s');
+                    
+                    // Check if any movement key is pressed
+                    isAnyMovementKeyPressed = isThrusting || isMovingLeft || isMovingRight || 
+                                             isMovingUp || isMovingDown || isMovingBack;
                     
                     // Check boost key
                     const boostKeyPressed = InputManager.isKeyPressed('shift');
@@ -436,8 +448,18 @@ const RocketControls = (function() {
                 // Apply acceleration to velocity
                 velocity.add(acceleration);
                 
-                // Apply friction/damping
-                velocity.multiplyScalar(FRICTION);
+                // Apply stronger friction/damping when no keys are pressed
+                if (!isAnyMovementKeyPressed) {
+                    velocity.multiplyScalar(0.9); // Stronger damping when idle
+                    
+                    // If velocity is very small, just zero it out to prevent jitter
+                    if (velocity.length() < 0.01) {
+                        velocity.set(0, 0, 0);
+                    }
+                } else {
+                    // Normal friction when moving
+                    velocity.multiplyScalar(FRICTION);
+                }
                 
                 // Limit maximum speed
                 const currentSpeed = velocity.length();
@@ -520,6 +542,14 @@ const RocketControls = (function() {
                     
                     // Reset rotation
                     rocket.rotation.set(Math.PI / 2, 0, 0);
+                    
+                    // Important: Make sure there's no residual momentum
+                    if (rocket.userData.velocity) {
+                        rocket.userData.velocity = new THREE.Vector3(0, 0, 0);
+                    }
+                    
+                    // Reset the thrust effects to idle state
+                    updateThrustEffects(false, false);
                 }
                 
                 // Update HUD

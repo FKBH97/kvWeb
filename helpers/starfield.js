@@ -11,7 +11,12 @@ const Starfield = (function() {
     let starField;
     let animationSpeed = 0.0001;
     
-    /**
+        /**
+     * Create a star particle system
+     * @param {number} count - Number of stars to create
+     * @returns {Object} THREE.Points object containing the stars
+     */
+        /**
      * Create a star particle system
      * @param {number} count - Number of stars to create
      * @returns {Object} THREE.Points object containing the stars
@@ -23,20 +28,10 @@ const Starfield = (function() {
         const colors = new Float32Array(count * 3);
         const sizes = new Float32Array(count);
         
-        // Random seed for deterministic positions
-        const seed = 12345;
-        let rng = function() {
-            seed = (seed * 9301 + 49297) % 233280;
-            return seed / 233280;
-        };
-        
-        // Star distribution configuration
-        const radius = 500; // Maximum distance from center
-        
         // Generate random positions, colors, and sizes
         for (let i = 0; i < count; i++) {
             // Use a sphere distribution for stars
-            const distance = Math.pow(Math.random(), 0.5) * radius; // Power for balanced distribution
+            const distance = Math.pow(Math.random(), 0.5) * 500; // Power for balanced distribution
             const theta = Math.random() * Math.PI * 2; // Random angle around y-axis
             const phi = Math.acos(2 * Math.random() - 1); // Random angle from y-axis
             
@@ -97,25 +92,15 @@ const Starfield = (function() {
         geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
         geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
         
-        // Create material
-        const material = new THREE.PointsMaterial({
-            size: 1,
-            vertexColors: true,
-            transparent: true,
-            opacity: 1.0,
-            sizeAttenuation: true,
-            fog: false,
-            blending: THREE.AdditiveBlending
-        });
-        
-        // Use custom shader material for better star rendering
+        // Create material with correct shaders for Three.js r133
         const starMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 time: { value: 0.0 },
-                texture: { value: createStarTexture() }
+                starTexture: { value: createStarTexture() } // Renamed to avoid conflict
             },
             vertexShader: `
                 attribute float size;
+                attribute vec3 color;
                 varying vec3 vColor;
                 uniform float time;
                 
@@ -132,10 +117,10 @@ const Starfield = (function() {
             `,
             fragmentShader: `
                 varying vec3 vColor;
-                uniform sampler2D texture;
+                uniform sampler2D starTexture;
                 
                 void main() {
-                    gl_FragColor = vec4(vColor, 1.0) * texture2D(texture, gl_PointCoord);
+                    gl_FragColor = vec4(vColor, 1.0) * texture2D(starTexture, gl_PointCoord);
                 }
             `,
             transparent: true,

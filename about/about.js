@@ -115,6 +115,9 @@ async function init() {
       console.warn('FTLSystem not available - FTL jumps will be disabled');
     }
     
+    // Make sure no UI panels are showing at startup
+    hideAllUIPanels();
+    
     // Start the animation loop with our update function
     SceneSetup.startAnimationLoop(update);
     
@@ -140,6 +143,37 @@ async function init() {
     if (typeof DebugMode !== 'undefined') {
       DebugMode.logError('Initialization failed', error);
     }
+  }
+}
+
+/**
+ * Hide all UI panels at startup to ensure clean state
+ */
+function hideAllUIPanels() {
+  // Hide docking panel if it exists
+  const dockingPanel = document.getElementById('planet-info-panel');
+  if (dockingPanel) {
+    dockingPanel.classList.add('hidden');
+    dockingPanel.style.display = 'none';
+  }
+  
+  // Hide FTL menu if it exists
+  const ftlMenu = document.getElementById('ftl-menu');
+  if (ftlMenu) {
+    ftlMenu.classList.add('hidden');
+    ftlMenu.style.display = 'none';
+  }
+  
+  // Hide docking prompt
+  const dockingPrompt = document.getElementById('docking-prompt');
+  if (dockingPrompt) {
+    dockingPrompt.classList.add('hidden');
+  }
+  
+  // Hide AI copilot
+  const aiCopilot = document.getElementById('ai-copilot');
+  if (aiCopilot) {
+    aiCopilot.classList.add('hidden');
   }
 }
 

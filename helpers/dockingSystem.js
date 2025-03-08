@@ -42,7 +42,7 @@ const DockingSystem = (function() {
             padding: 20px;
             color: #FFFFFF;
             z-index: 100;
-            display: flex;
+            display: none; /* Explicitly set to none to ensure it's hidden */
             flex-direction: column;
             gap: 15px;
         `;
@@ -158,6 +158,7 @@ const DockingSystem = (function() {
         
         // Show the panel
         planetInfoPanel.classList.remove('hidden');
+        planetInfoPanel.style.display = 'flex';
     }
     
     /**
@@ -372,6 +373,12 @@ const DockingSystem = (function() {
             // Create planet info panel
             createPlanetInfoPanel();
             
+            // IMPORTANT: Make sure the panel starts hidden
+            if (planetInfoPanel) {
+                planetInfoPanel.classList.add('hidden');
+                planetInfoPanel.style.display = 'none';
+            }
+            
             // Register keyboard event for undocking
             if (typeof InputManager !== 'undefined' && InputManager.registerKeyListener) {
                 InputManager.registerKeyListener('e', function(isPressed) {
@@ -559,6 +566,7 @@ const DockingSystem = (function() {
                 // Hide planet info panel
                 if (planetInfoPanel) {
                     planetInfoPanel.classList.add('hidden');
+                    planetInfoPanel.style.display = 'none';
                 }
                 
                 // Move the rocket slightly away from the planet to prevent immediate re-docking
@@ -642,6 +650,7 @@ const DockingSystem = (function() {
                 // Hide planet info panel
                 if (planetInfoPanel) {
                     planetInfoPanel.classList.add('hidden');
+                    planetInfoPanel.style.display = 'none';
                 }
             }
         },
