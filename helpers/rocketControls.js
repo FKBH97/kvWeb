@@ -103,6 +103,57 @@ const RocketControls = (function() {
     }
     
     /**
+     * Add engine flame to the rocket
+     */
+    function addEngineFlame() {
+        // Remove any existing flare
+        if (rocket.userData && rocket.userData.flare) {
+            const oldFlare = rocket.userData.flare;
+            rocket.remove(oldFlare);
+        }
+        
+        if (rocketLight) {
+            rocket.remove(rocketLight);
+        }
+        
+        // Create new flare
+        const flareGeometry = new THREE.SphereGeometry(0.3, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+        const flareMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xFF6600, 
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        // Position the flare at the back of the rocket, considering the Z-scale inversion
+        const flare = new THREE.Mesh(flareGeometry, flareMaterial);
+        flare.name = 'engineFlare';
+        
+        // With Z-scale inverted, the back is now in the positive Z direction
+        flare.position.set(0, 0, -1.0);
+        rocket.add(flare);
+        
+        // Add light for the engine
+        rocketLight = new THREE.PointLight(0xFF6600, 1, 5);
+        rocketLight.position.copy(flare.position);
+        rocket.add(rocketLight);
+        
+        // Store reference to the flare for animation
+        rocket.userData.flare = flare;
+        
+        return flare;
+    }
+    
+    /**
+     * Update the engine flame position based on movement
+     */
+    function updateEngineFlame() {
+        if (!rocket || !rocket.userData || !rocket.userData.flare) return;
+        
+        // With our Z-scale inversion, the flame should stay at a fixed position
+        // relative to the rocket model, no need for dynamic repositioning
+    }
+    
+    /**
      * Create rocket thrust effects
      * @param {boolean} isAccelerating - Whether the rocket is accelerating
      * @param {boolean} isBoosting - Whether boost is active
@@ -210,24 +261,54 @@ const RocketControls = (function() {
     function updateCamera() {
         if (!camera || !rocket) return;
         
-        // Get rocket's forward direction
-        const forward = new THREE.Vector3(0, 0, -1);
-        forward.applyQuaternion(rocket.quaternion);
+        // STEP 1: Get the rocket's current movement direction
+        // If not moving, use its current rotation to guess direction
+        let forwardDirection;
         
-        // Position the camera behind and slightly above the rocket
-        const cameraOffset = new THREE.Vector3(0, 2, 8);
-        const cameraPosition = position.clone().add(
-            cameraOffset.applyQuaternion(rocket.quaternion)
-        );
+        if (velocity.length() > 0.01) {
+            // Use actual movement direction when moving
+            forwardDirection = velocity.clone().normalize();
+        } else {
+            // Default forward direction based on current orientation
+            forwardDirection = new THREE.Vector3(0, 0, -1);
+            forwardDirection.applyQuaternion(rocket.quaternion);
+        }
         
-        // Smooth camera movement
+        // STEP 2: Force camera position BEHIND the rocket
+        // This is the key - we place the camera opposite to the movement direction
+        const backwardDirection = forwardDirection.clone().negate();
+        
+        // Position camera behind and slightly above the rocket
+        const cameraDistance = 5; // Distance behind rocket
+        const cameraHeight = 1.5; // Height above rocket
+        
+        const cameraPosition = position.clone()
+            .add(backwardDirection.multiplyScalar(cameraDistance))
+            .add(new THREE.Vector3(0, cameraHeight, 0));
+        
+        // STEP 3: Smoothly move camera to this position
         camera.position.lerp(cameraPosition, 0.1);
         
-        // Make camera look at a point ahead of the rocket
-        const lookAtPosition = position.clone().add(
-            forward.multiplyScalar(10)
+        // STEP 4: Look at the rocket's position plus a bit of its forward direction
+        // This makes the camera look slightly ahead of the rocket
+        const lookTarget = position.clone().add(
+            forwardDirection.clone().multiplyScalar(2)
         );
-        camera.lookAt(lookAtPosition);
+        
+        camera.lookAt(lookTarget);
+        
+        // STEP 5: Update FOV for speed effect (optional)
+        if (boostActive) {
+            // Increase FOV when boosting for a sense of speed
+            const targetFOV = 80;
+            camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 0.05);
+            camera.updateProjectionMatrix();
+        } else {
+            // Normal FOV when not boosting
+            const targetFOV = 75;
+            camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 0.05);
+            camera.updateProjectionMatrix();
+        }
     }
     
     // Public methods
@@ -270,7 +351,6 @@ const RocketControls = (function() {
                 console.log('Rocket initialized successfully with placeholder model');
                 
                 // Try to load the actual rocket model
-                /* NOTE: This part would load your actual model
                 modelLoader = new THREE.GLTFLoader();
                 
                 try {
@@ -278,8 +358,13 @@ const RocketControls = (function() {
                         modelLoader.load(
                             'assets/models/rocket.glb',
                             resolve,
-                            undefined,
-                            reject
+                            (xhr) => {
+                                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                            },
+                            (error) => {
+                                console.error('Error loading rocket model:', error);
+                                reject(error);
+                            }
                         );
                     });
                     
@@ -289,18 +374,36 @@ const RocketControls = (function() {
                     scene.remove(rocket);
                     rocket = rocketModel;
                     
-                    // Position and scale the model
+                    // Position the model
                     rocket.position.copy(position);
-                    rocket.scale.set(0.5, 0.5, 0.5);
+                    
+                    // Use a completely different approach with lookAt and scale inversion
+                    // First, reset any rotation that might have been applied
+                    rocket.rotation.set(0, 0, 0);
+                    
+                    // Invert the model along the Z axis (flips front to back)
+                    rocket.scale.z = -1;
+                    
+                    // Make sure matrix auto-update is enabled
+                    rocket.matrixAutoUpdate = true;
+                    
+                    // Update the matrix
+                    rocket.updateMatrix();
                     
                     // Add to scene
                     scene.add(rocket);
                     
-                    console.log('Rocket model loaded successfully');
+                    // Add engine flame
+                    addEngineFlame();
+                    
+                    // Re-enable auto updating of the matrix for ongoing transformations
+                    rocket.matrixAutoUpdate = true;
+                    
+                    console.log('Rocket model transformed using matrix transformation');
+                    
                 } catch (modelError) {
                     console.warn('Failed to load rocket model, using placeholder:', modelError);
                 }
-                */
                 
                 // Log successful initialization
                 if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logEvent) {
@@ -479,6 +582,9 @@ const RocketControls = (function() {
                 position.copy(adjustedPosition);
                 rocket.position.copy(position);
                 
+                // Update engine flame position
+                updateEngineFlame();
+                
                 // Update HUD speed if HudManager is available
                 if (typeof HudManager !== 'undefined' && HudManager.updateSpeed) {
                     HudManager.updateSpeed(currentSpeed);
@@ -577,6 +683,49 @@ const RocketControls = (function() {
         },
         
         /**
+         * Inspect the model structure for debugging
+         * @returns {string} Status message
+         */
+        inspectModelStructure: function() {
+            if (!rocket) return "No rocket model found";
+            
+            // Helper function to print object hierarchy
+            function printStructure(object, depth = 0) {
+                const indent = ' '.repeat(depth * 2);
+                const info = {
+                    name: object.name || 'unnamed',
+                    type: object.type,
+                    children: object.children ? object.children.length : 0,
+                    position: object.position ? [
+                        object.position.x.toFixed(2),
+                        object.position.y.toFixed(2), 
+                        object.position.z.toFixed(2)
+                    ] : null,
+                    rotation: object.rotation ? [
+                        object.rotation.x.toFixed(2),
+                        object.rotation.y.toFixed(2),
+                        object.rotation.z.toFixed(2)
+                    ] : null
+                };
+                
+                console.log(`${indent}${info.name} (${info.type}) - Children: ${info.children}`);
+                console.log(`${indent}  Position: ${info.position}, Rotation: ${info.rotation}`);
+                
+                // Recursively process children
+                if (object.children && object.children.length > 0) {
+                    object.children.forEach(child => {
+                        printStructure(child, depth + 1);
+                    });
+                }
+            }
+            
+            console.log("MODEL STRUCTURE:");
+            printStructure(rocket);
+            
+            return "Model structure printed to console";
+        },
+        
+        /**
          * Check if we're near any planets for docking
          */
         checkNearbyPlanets: function() {
@@ -612,6 +761,32 @@ const RocketControls = (function() {
             } catch (error) {
                 console.error('Error checking nearby planets:', error);
             }
+        },
+        
+        /**
+         * Fine-tune the rocket's orientation in real-time
+         * @param {string} axis - 'x', 'y', or 'z' axis to adjust
+         * @param {number} amount - Amount to adjust in radians (use small values like 0.1)
+         */
+        adjustRocketOrientation: function(axis, amount) {
+            if (!rocket) return;
+            
+            amount = amount || 0.1; // Default small adjustment
+            
+            switch(axis.toLowerCase()) {
+                case 'x':
+                    rocket.rotation.x += amount;
+                    break;
+                case 'y':
+                    rocket.rotation.y += amount;
+                    break;
+                case 'z':
+                    rocket.rotation.z += amount;
+                    break;
+            }
+            
+            console.log(`Rocket rotation: X=${rocket.rotation.x.toFixed(2)}, Y=${rocket.rotation.y.toFixed(2)}, Z=${rocket.rotation.z.toFixed(2)}`);
+            return {x: rocket.rotation.x, y: rocket.rotation.y, z: rocket.rotation.z};
         },
         
         /**
