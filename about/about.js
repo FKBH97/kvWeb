@@ -272,7 +272,7 @@ function update(timestamp) {
     
     // Update planet positions if available
     if (typeof PlanetSetup !== 'undefined' && PlanetSetup.updatePlanetPositions) {
-      PlanetSetup.updatePlanetPositions(deltaSeconds);
+      PlanetSetup.updatePlanetPositions(deltaSeconds, timeElapsed);
     }
     
     // Update rocket system

@@ -17,10 +17,10 @@ const RocketControls = (function() {
     let acceleration = new THREE.Vector3(0, 0, 0);
     
     // Constants
-    const ACCELERATION_FACTOR = 0.02;
-    const MAX_SPEED = 1.0;
-    const FRICTION = 0.95; // Dampening factor
-    const BOOST_MULTIPLIER = 2.5;
+    const ACCELERATION_FACTOR = 0.01; // Reduced from 0.02
+    const MAX_SPEED = 0.25; // Reduced from 1.0
+    const FRICTION = 0.93; // Increased friction (reduced from 0.95)
+    const BOOST_MULTIPLIER = 1; // Reduced from 2.5
     const BOOST_DURATION = 2000; // ms
     const BOOST_COOLDOWN = 5000; // ms
     
@@ -31,10 +31,13 @@ const RocketControls = (function() {
     let boostCooldownEnd = 0;
     
     // Collision parameters
-    const COLLISION_DISTANCE = 3.0; // Minimum distance to planets
+    const COLLISION_DISTANCE = 8.0; // Increased to work with larger planets
     
     // Cache for planet objects (updated each frame)
     let planets = [];
+    
+    // Reference to the sun object (updated when checking collisions)
+    let sun = null;
     
     // Model loader
     let modelLoader;
@@ -191,12 +194,101 @@ const RocketControls = (function() {
     }
     
     /**
-     * Check for collisions with planets and prevent movement
+     * Check for collisions with planets and the sun, and prevent movement
      * @param {THREE.Vector3} newPosition - The proposed new position
      * @returns {THREE.Vector3} Adjusted position after collision check
      */
     function checkCollisions(newPosition) {
-        if (!planets || planets.length === 0) return newPosition;
+        let adjustedPosition = newPosition.clone();
+        let collisionOccurred = false;
+        
+        // First check collision with the sun if available
+        if (!sun && typeof SunSetup !== 'undefined' && SunSetup.getSun) {
+            sun = SunSetup.getSun();
+        }
+        
+        if (sun) {
+            const sunPosition = sun.position.clone();
+            
+            // The sun radius is typically defined as a constant in SunSetup.js (SUN_RADIUS)
+            // If not accessible, fallback to a reasonable value
+            const sunRadius = 100; // Default sun radius if not accessible
+            
+            // Use a larger collision distance for the sun (it's hotter!)
+            const sunCollisionDistance = 120;
+            
+            const distance = sunPosition.distanceTo(newPosition);
+            const minDistance = sunRadius + sunCollisionDistance;
+            
+            // Add debug logging when very close to the sun
+            if (distance < sunRadius * 3) {
+                console.log(`Near Sun: distance=${distance.toFixed(2)}, radius=${sunRadius.toFixed(2)}, min=${minDistance.toFixed(2)}`);
+            }
+            
+            if (distance < minDistance) {
+                collisionOccurred = true;
+                
+                // Calculate direction from sun to rocket
+                const pushDirection = new THREE.Vector3()
+                    .subVectors(newPosition, sunPosition)
+                    .normalize();
+                
+                // Push the rocket out to valid position with a little extra margin for the sun
+                adjustedPosition = sunPosition.clone().add(
+                    pushDirection.multiplyScalar(minDistance + 0.5)
+                );
+                
+                // Dramatic velocity reduction for sun collision (it's hot!)
+                velocity.multiplyScalar(0.3);
+                
+                // Notify HUD if available
+                if (typeof HudManager !== 'undefined') {
+                    if (HudManager.showNotification) {
+                        // More dramatic warning for the sun
+                        HudManager.showNotification('WARNING: Extreme temperatures detected!', 'error');
+                    }
+                    
+                    // Solar flare message
+                    if (HudManager.showAIMessage) {
+                        HudManager.showAIMessage('Caution! Solar flares detected. Heat shields at maximum capacity!');
+                    }
+                }
+                
+                // Log collision if LoggingSystem is available
+                if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logEvent) {
+                    LoggingSystem.logEvent('collision_detected', {
+                        object: 'sun',
+                        position: adjustedPosition,
+                        time: Date.now()
+                    });
+                }
+                
+                // Add camera shake effect for collision feedback - more dramatic for the sun
+                if (camera) {
+                    // Store original camera position
+                    const originalPos = camera.position.clone();
+                    
+                    // Stronger shake for sun collision
+                    const shakeAmount = 0.4;
+                    camera.position.x += (Math.random() - 0.5) * shakeAmount;
+                    camera.position.y += (Math.random() - 0.5) * shakeAmount;
+                    camera.position.z += (Math.random() - 0.5) * shakeAmount;
+                    
+                    // Return to original position after a short delay
+                    setTimeout(() => {
+                        if (camera) {
+                            camera.position.lerp(originalPos, 0.5);
+                        }
+                    }, 100);
+                }
+                
+                // Return early if we've collided with the sun
+                return adjustedPosition;
+            }
+        }
+        
+        // Continue with existing planet collision detection
+        if (!planets || planets.length === 0) return adjustedPosition;
         
         // First, check if we need to update the planet cache
         if (typeof PlanetSetup !== 'undefined' && PlanetSetup.getPlanets) {
@@ -204,26 +296,28 @@ const RocketControls = (function() {
         }
         
         // Check collision with planets
-        let adjustedPosition = newPosition.clone();
-        let collisionOccurred = false;
-        
         for (const planetObj of planets) {
             if (!planetObj.planet) continue;
             
             const planet = planetObj.planet;
             const planetPosition = planet.position.clone();
-            const planetRadius = planet.geometry.parameters.radius || 1;
-            const distance = planetPosition.distanceTo(newPosition);
+            const planetRadius = planet.userData.radius || planet.geometry.parameters.radius || 1;
+            const distance = planetPosition.distanceTo(adjustedPosition);
             
             // Consider planet radii and a safety margin for collision
             const minDistance = planetRadius + COLLISION_DISTANCE;
+            
+            // Add debug logging when very close to a planet
+            if (distance < planetRadius * 3) {
+                console.log(`Near ${planet.userData.name}: distance=${distance.toFixed(2)}, radius=${planetRadius.toFixed(2)}, min=${minDistance.toFixed(2)}`);
+            }
             
             if (distance < minDistance) {
                 collisionOccurred = true;
                 
                 // Calculate direction from planet to rocket
                 const pushDirection = new THREE.Vector3()
-                    .subVectors(newPosition, planetPosition)
+                    .subVectors(adjustedPosition, planetPosition)
                     .normalize();
                 
                 // Push the rocket out to valid position
@@ -232,11 +326,16 @@ const RocketControls = (function() {
                 );
                 
                 // Reduce velocity as a result of collision
-                velocity.multiplyScalar(0.6);
+                velocity.multiplyScalar(0.4);
                 
                 // Notify HUD if available
                 if (typeof HudManager !== 'undefined' && HudManager.showNotification) {
                     HudManager.showNotification(`Proximity warning: ${planet.userData.name}`);
+                }
+                
+                // Add visual feedback for collision
+                if (typeof HudManager !== 'undefined' && HudManager.showNotification) {
+                    HudManager.showNotification(`COLLISION with ${planet.userData.name}!`, 'error');
                 }
                 
                 // Log collision if LoggingSystem is available
@@ -246,6 +345,25 @@ const RocketControls = (function() {
                         position: adjustedPosition,
                         time: Date.now()
                     });
+                }
+                
+                // Add camera shake effect for collision feedback
+                if (camera) {
+                    // Store original camera position
+                    const originalPos = camera.position.clone();
+                    
+                    // Small random displacement
+                    const shakeAmount = 0.2;
+                    camera.position.x += (Math.random() - 0.5) * shakeAmount;
+                    camera.position.y += (Math.random() - 0.5) * shakeAmount;
+                    camera.position.z += (Math.random() - 0.5) * shakeAmount;
+                    
+                    // Return to original position after a short delay
+                    setTimeout(() => {
+                        if (camera) {
+                            camera.position.lerp(originalPos, 0.5);
+                        }
+                    }, 100);
                 }
                 
                 break; // Handle one collision at a time
@@ -827,6 +945,14 @@ const RocketControls = (function() {
          */
         getRocketObject: function() {
             return rocket;
+        },
+        
+        /**
+         * Get the current collision distance setting
+         * @returns {number} Current collision distance
+         */
+        getCollisionDistance: function() {
+            return COLLISION_DISTANCE;
         },
         
         /**

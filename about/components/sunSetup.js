@@ -11,9 +11,9 @@ const SunSetup = (function() {
     let sunLight;
     
     // Constants
-    const SUN_RADIUS = 10;
-    const CORONA_RADIUS = 10.5;
-    const OUTER_CORONA_RADIUS = 11;
+    const SUN_RADIUS = 150;
+    const CORONA_RADIUS = 160;
+    const OUTER_CORONA_RADIUS = 170;
     
     return {
         /**
@@ -45,6 +45,13 @@ const SunSetup = (function() {
                 // Create sun mesh
                 sun = new THREE.Mesh(sunGeometry, sunMaterial);
                 sun.position.set(0, 0, 0);
+                
+                // Add userData radius for collision detection
+                sun.userData = {
+                    name: "sun",
+                    radius: SUN_RADIUS
+                };
+                
                 scene.add(sun);
                 
                 // Create main corona effect
@@ -93,6 +100,13 @@ const SunSetup = (function() {
                     new THREE.MeshBasicMaterial({ color: 0xFFDD66 })
                 );
                 fallbackSun.position.set(0, 0, 0);
+                
+                // Add userData radius for collision detection
+                fallbackSun.userData = {
+                    name: "sun",
+                    radius: SUN_RADIUS
+                };
+                
                 scene.add(fallbackSun);
                 
                 sun = fallbackSun;
@@ -150,6 +164,14 @@ const SunSetup = (function() {
                     1 + 0.07 * Math.sin(time * 0.2)
                 );
             }
+        },
+        
+        /**
+         * Get the sun object
+         * @returns {Object} The sun mesh
+         */
+        getSun: function() {
+            return sun;
         }
     };
 })();

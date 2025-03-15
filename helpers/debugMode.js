@@ -394,6 +394,81 @@ const DebugMode = (function() {
                 HudManager.showNotification(`ERROR: ${message}`, 'error');
             }
         },
+
+                // Add this function to debugMode.js near the end of the public methods return block
+        // (before the final closing brace and parenthesis):
+
+        /**
+         * Toggle collision visualization spheres around planets
+         */
+        toggleCollisionSpheres: function() {
+            if (!scene) {
+                console.warn('No scene available for collision visualization');
+                return false;
+            }
+            
+            // Check if visualization already exists
+            const existingSpheres = scene.children.filter(child => 
+                child.name && child.name.startsWith('collisionSphere_'));
+            
+            if (existingSpheres.length > 0) {
+                // Remove existing visualization
+                existingSpheres.forEach(sphere => {
+                    scene.remove(sphere);
+                });
+                console.log('Collision spheres hidden');
+                return false;
+            } else {
+                // Create visualization
+                if (typeof PlanetSetup !== 'undefined' && PlanetSetup.getPlanets) {
+                    const planets = PlanetSetup.getPlanets();
+                    if (!planets || planets.length === 0) {
+                        console.warn('No planets found for collision visualization');
+                        return false;
+                    }
+                    
+                    // Add collision sphere for each planet
+                    planets.forEach(planetObj => {
+                        if (!planetObj.planet) return;
+                        
+                        const planet = planetObj.planet;
+                        const planetRadius = planet.userData.radius || 
+                            (planet.geometry ? planet.geometry.parameters.radius : 1);
+                        
+                        // Get collision distance from RocketControls if available
+                        let collisionDistance = 8.0; // Default
+                        if (typeof RocketControls !== 'undefined' && 
+                            RocketControls.getCollisionDistance) {
+                            collisionDistance = RocketControls.getCollisionDistance();
+                        }
+                        
+                        // Create visualization sphere
+                        const sphereGeometry = new THREE.SphereGeometry(
+                            planetRadius + collisionDistance, 32, 32);
+                        const sphereMaterial = new THREE.MeshBasicMaterial({
+                            color: 0xFF0000,
+                            transparent: true,
+                            opacity: 0.1,
+                            wireframe: true
+                        });
+                        
+                        const collisionSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                        collisionSphere.name = `collisionSphere_${planet.userData.name}`;
+                        
+                        // Position at planet
+                        collisionSphere.position.copy(planet.position);
+                        
+                        // Make collision sphere follow planet in its orbit
+                        planet.parent.add(collisionSphere);
+                    });
+                    
+                    console.log('Collision spheres visible');
+                    return true;
+                }
+            }
+            
+            return false;
+        },
         
         /**
          * Clear all error messages

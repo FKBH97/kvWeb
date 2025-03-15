@@ -13,6 +13,7 @@ const PlanetSetup = (function() {
     let textureLoader;
     let orbitLines = []; // Store orbit visualization lines
     let showOrbits = false; // Toggle for orbit visualization
+    let timeElapsed = 0; // Track elapsed time for animations
 
     // Hardcoded texture paths for each planet and texture type
     const planetTexturePaths = {
@@ -84,6 +85,9 @@ const PlanetSetup = (function() {
         deimos: "assets/models/deimos.obj"
     };
     
+    // Space station model path
+    const spaceStationModelPath = "sharedAssets/models/spaceStation.glb";
+    
     // Hardcoded paths for sun textures
     const sunTexturePaths = {
         map: "assets/planets/sun/sun_map.jpg",
@@ -96,44 +100,44 @@ const PlanetSetup = (function() {
     const planetaryData = [
         {
             name: "mercury",
-            radius: 0.8,
-            distance: 15,
-            rotationSpeed: 0.005,
-            orbitSpeed: 0.008,
+            radius: 16,  // Doubled from 0.8
+            distance: 200, // Increased distance to maintain spacing
+            rotationSpeed: 0.0005,
+            orbitSpeed: 0.0008,
             axialTilt: 0.03,
-            orbitalInclination: 0.1223, // 7.01° in radians
+            orbitalInclination: 12.23, // 7.01° in radians
             hasRings: false,
             moons: []
         },
         {
             name: "venus",
-            radius: 1.5,
-            distance: 22,
-            rotationSpeed: 0.002,
-            orbitSpeed: 0.006,
+            radius: 30,  // Doubled from 1.5
+            distance: 320, // Increased from 22
+            rotationSpeed: 0.0002,
+            orbitSpeed: 0.0006,
             axialTilt: 0.01,
-            orbitalInclination: 0.0592, // 3.39° in radians
+            orbitalInclination: 5.92, // 3.39° in radians
             hasRings: false,
             moons: []
         },
         {
             name: "earth",
-            radius: 1.6,
-            distance: 30,
+            radius: 32,  // Doubled from 1.6
+            distance: 450, // Increased from 30
             hasAtmosphere: true,
             atmosphereColor: 0x7098DA,
             atmosphereOpacity: 0.2,
             hasCloudLayer: true,
-            rotationSpeed: 0.007,
-            orbitSpeed: 0.005,
+            rotationSpeed: 0.0007,
+            orbitSpeed: 0.0005,
             axialTilt: 0.41,
             orbitalInclination: 0.0, // 0° (reference plane)
             hasRings: false,
             moons: [
                 {
                     name: "luna",
-                    radius: 0.4,
-                    distance: 3,
+                    radius: 8,  // Doubled from 0.4
+                    distance: 50,   // Increased from 3
                     rotationSpeed: 0.008,
                     orbitSpeed: 0.015,
                     isModel: false
@@ -142,26 +146,26 @@ const PlanetSetup = (function() {
         },
         {
             name: "mars",
-            radius: 1.2,
-            distance: 38,
-            rotationSpeed: 0.007,
-            orbitSpeed: 0.004,
+            radius: 24,  // Doubled from 1.2
+            distance: 600, // Increased from 38
+            rotationSpeed: 0.0007,
+            orbitSpeed: 0.0004,
             axialTilt: 0.44,
-            orbitalInclination: 0.0323, // 1.85° in radians
+            orbitalInclination: 3.23, // 1.85° in radians
             hasRings: false,
             moons: [
                 {
                     name: "phobos",
-                    radius: 0.002,
-                    distance: 2,
+                    radius: 0.04, // Doubled
+                    distance: 30,
                     rotationSpeed: 0.01,
                     orbitSpeed: 0.02,
                     isModel: true
                 },
                 {
                     name: "deimos",
-                    radius: 0.0015,
-                    distance: 3,
+                    radius: 0.03, // Doubled
+                    distance: 40,
                     rotationSpeed: 0.008,
                     orbitSpeed: 0.015,
                     isModel: true
@@ -170,47 +174,47 @@ const PlanetSetup = (function() {
         },
         {
             name: "jupiter",
-            radius: 5,
-            distance: 60,
-            rotationSpeed: 0.01,
-            orbitSpeed: 0.002,
+            radius: 100,   // Doubled from 5
+            distance: 850, // Increased from 60
+            rotationSpeed: 0.001,
+            orbitSpeed: 0.0002,
             axialTilt: 0.05,
-            orbitalInclination: 0.0229, // 1.31° in radians
+            orbitalInclination: 2.29, // 1.31° in radians
             hasRings: false,
             moons: []
         },
         {
             name: "saturn",
-            radius: 4,
-            distance: 80,
-            rotationSpeed: 0.009,
-            orbitSpeed: 0.0015,
+            radius: 80,    // Doubled from 4
+            distance: 1150, // Increased from 80
+            rotationSpeed: 0.0009,
+            orbitSpeed: 0.00015,
             axialTilt: 0.47,
-            orbitalInclination: 0.0435, // 2.49° in radians
+            orbitalInclination: 4.35, // 2.49° in radians
             hasRings: true,
             ringSize: 2.5, // Multiplier relative to planet radius
             moons: []
         },
         {
             name: "uranus",
-            radius: 2.5,
-            distance: 100,
-            rotationSpeed: 0.008,
-            orbitSpeed: 0.001,
+            radius: 50,    // Doubled from 2.5
+            distance: 1400, // Increased from 100
+            rotationSpeed: 0.0008,
+            orbitSpeed: 0.0001,
             axialTilt: 1.71, // Uranus has an extreme axial tilt
-            orbitalInclination: 0.0134, // 0.77° in radians
+            orbitalInclination: 1.34, // 0.77° in radians
             hasRings: true,
             ringSize: 1.8,
             moons: []
         },
         {
             name: "neptune",
-            radius: 2.3,
-            distance: 115,
-            rotationSpeed: 0.008,
-            orbitSpeed: 0.0008,
+            radius: 46,  // Doubled from 2.3
+            distance: 1650, // Increased from 115
+            rotationSpeed: 0.0008,
+            orbitSpeed: 0.00008,
             axialTilt: 0.49,
-            orbitalInclination: 0.0309, // 1.77° in radians
+            orbitalInclination: 3.09, // 1.77° in radians
             hasRings: false,
             moons: []
         }
@@ -332,6 +336,7 @@ const PlanetSetup = (function() {
         // Add planet data to the mesh for reference
         planet.userData = {
             name: planetData.name,
+            radius: planetData.radius, // Store the radius in userData for collision detection
             orbitDistance: planetData.distance,
             orbitSpeed: planetData.orbitSpeed,
             rotationSpeed: planetData.rotationSpeed,
@@ -803,6 +808,98 @@ const PlanetSetup = (function() {
             pivot: pivot
         });
     }
+
+    /**
+     * Create a space station orbiting a planet
+     * @param {Object} planetData - Data for the parent planet
+     * @param {Object} planet - The parent planet mesh
+     */
+    function createSpaceStation(planetData, planet) {
+        // Only add space stations to planets with radius > 1.5 
+        // to avoid cluttering smaller planets
+        if (planetData.radius < 1.5) return;
+        
+        try {
+            // Check if GLTFLoader is available
+            if (typeof THREE.GLTFLoader === 'undefined') {
+                console.warn('GLTFLoader not available. Space station not added.');
+                return;
+            }
+            
+            // Load the space station model
+            const loader = new THREE.GLTFLoader();
+            
+            loader.load(
+                spaceStationModelPath,
+                function(gltf) {
+                    const spaceStation = gltf.scene;
+                    
+                    // Scale the space station appropriately
+                    // Using smaller scale for larger planets
+                    const scale = 0.05 * (3 / planetData.radius);
+                    spaceStation.scale.set(scale, scale, scale);
+                    
+                    // Create orbit parameters
+                    const orbitDistance = planetData.radius * 2; // Orbit at twice the planet's radius
+                    const orbitSpeed = planetData.orbitSpeed * 1.5; // Orbit 1.5x as fast as the planet
+                    const orbitHeight = planetData.radius * 0.2; // Slight vertical offset
+                    
+                    // Create a pivot for orbit
+                    const pivot = new THREE.Object3D();
+                    pivot.name = `${planetData.name}StationPivot`;
+                    
+                    // Random starting angle
+                    const startAngle = Math.random() * Math.PI * 2;
+                    pivot.rotation.y = startAngle;
+                    
+                    // Add some inclination for variety (but not too much)
+                    const inclination = (Math.random() * 0.2) - 0.1; // -0.1 to 0.1 radians
+                    pivot.rotation.x = inclination;
+                    
+                    // Position station at its orbit distance
+                    spaceStation.position.x = orbitDistance;
+                    spaceStation.position.y = orbitHeight;
+                    
+                    // Rotate the station to face "forward" in its orbit
+                    spaceStation.rotation.y = Math.PI / 2;
+                    
+                    // Add a light to the space station (optional)
+                    const stationLight = new THREE.PointLight(0xFFFFFF, 0.5, orbitDistance * 2);
+                    stationLight.position.set(0, 0, 0);
+                    spaceStation.add(stationLight);
+                    
+                    // Add station to pivot and pivot to planet
+                    pivot.add(spaceStation);
+                    planet.add(pivot);
+                    
+                    // Store pivot reference for animation
+                    if (!planet.userData.spaceStations) {
+                        planet.userData.spaceStations = [];
+                    }
+                    
+                    planet.userData.spaceStations.push({
+                        pivot: pivot,
+                        station: spaceStation,
+                        orbitSpeed: orbitSpeed
+                    });
+                    
+                    console.log(`Space station added to ${planetData.name}`);
+                },
+                function(xhr) {
+                    // Progress callback (optional)
+                    if (xhr.lengthComputable) {
+                        const percentComplete = xhr.loaded / xhr.total * 100;
+                        console.log(`${planetData.name} station: ${Math.round(percentComplete)}% loaded`);
+                    }
+                },
+                function(error) {
+                    console.error(`Error loading space station for ${planetData.name}:`, error);
+                }
+            );
+        } catch (error) {
+            console.error(`Error creating space station for ${planetData.name}:`, error);
+        }
+    }
     
     // Public methods
     return {
@@ -882,6 +979,9 @@ const PlanetSetup = (function() {
                         createMoon(moonData, planet);
                     });
                 }
+                
+                // Create a space station orbiting the planet
+                createSpaceStation(planetData, planet);
             });
                         
             console.log('Planetary system initialized with', planets.length, 'planets and', moons.length, 'moons');
@@ -892,8 +992,10 @@ const PlanetSetup = (function() {
         /**
          * Update planet and moon positions for animation
          * Call this in the render loop
+         * @param {number} deltaTime - Time since last frame in seconds
+         * @param {number} timeElapsed - Total elapsed time for animations
          */
-        updatePlanetPositions: function(deltaTime) {
+        updatePlanetPositions: function(deltaTime, timeElapsed) {
             // Update each planet's position
             planets.forEach(planetObj => {
                 const planet = planetObj.planet;
@@ -909,6 +1011,19 @@ const PlanetSetup = (function() {
                 // Update cloud rotation if planet has clouds
                 if (planet.userData.clouds) {
                     planet.userData.clouds.rotation.y += data.rotationSpeed * 1.1 * deltaTime;
+                }
+                
+                // Update space stations if planet has them
+                if (planet.userData.spaceStations && planet.userData.spaceStations.length > 0) {
+                    planet.userData.spaceStations.forEach(stationData => {
+                        stationData.pivot.rotation.y += stationData.orbitSpeed * .16;
+                        
+                        // Add slight wobble for realistic station movement
+                        const station = stationData.station;
+                        if (station) {
+                            station.rotation.z = Math.sin(timeElapsed * 0.5) * 0.03;
+                        }
+                    });
                 }
             });
             
