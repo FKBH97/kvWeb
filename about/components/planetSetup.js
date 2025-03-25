@@ -86,7 +86,7 @@ const PlanetSetup = (function() {
     };
     
     // Space station model path
-    const spaceStationModelPath = "sharedAssets/models/spaceStation.glb";
+    const spaceStationModelPath = "/sharedAssets/models/spaceStation.glb";
     
     // Hardcoded paths for sun textures
     const sunTexturePaths = {
@@ -328,15 +328,17 @@ const PlanetSetup = (function() {
             32  // height segments
         );
         
-        // Create planet material
+        // Create planet material with improved settings
         const material = createPlanetMaterial(planetData);
+        material.side = THREE.FrontBack; // Make both sides visible
         
         const planet = new THREE.Mesh(geometry, material);
+        planet.name = planetData.name;
         
         // Add planet data to the mesh for reference
         planet.userData = {
             name: planetData.name,
-            radius: planetData.radius, // Store the radius in userData for collision detection
+            radius: planetData.radius,
             orbitDistance: planetData.distance,
             orbitSpeed: planetData.orbitSpeed,
             rotationSpeed: planetData.rotationSpeed,
@@ -349,12 +351,18 @@ const PlanetSetup = (function() {
         
         // Add atmosphere if planet has one
         if (planetData.hasAtmosphere) {
-            addAtmosphere(planet, planetData);
+            const atmosphere = addAtmosphere(planet, planetData);
+            if (atmosphere) {
+                atmosphere.frustumCulled = false;
+            }
         }
         
         // Add cloud layer if planet has one
         if (planetData.hasCloudLayer) {
-            addCloudLayer(planet, planetData);
+            const clouds = addCloudLayer(planet, planetData);
+            if (clouds) {
+                clouds.frustumCulled = false;
+            }
         }
         
         // Add night lights for Earth
@@ -431,6 +439,8 @@ const PlanetSetup = (function() {
         
         const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
         planet.add(atmosphere);
+        
+        return atmosphere;
     }
     
     /**
@@ -481,6 +491,8 @@ const PlanetSetup = (function() {
         
         // Store clouds reference for animation
         planet.userData.clouds = clouds;
+        
+        return clouds;
     }
     
     /**
@@ -598,6 +610,8 @@ const PlanetSetup = (function() {
         
         // Add the ring to the planet
         planet.add(ring);
+        
+        return ring;
     }
     
     /**
@@ -810,95 +824,132 @@ const PlanetSetup = (function() {
     }
 
     /**
-     * Create a space station orbiting a planet
+     * Create a fallback space station using basic geometry
      * @param {Object} planetData - Data for the parent planet
-     * @param {Object} planet - The parent planet mesh
+     * @param {Object} pivot - The pivot point for the station's orbit
+     * @returns {Object} The space station mesh
      */
-    function createSpaceStation(planetData, planet) {
-        // Only add space stations to planets with radius > 1.5 
-        // to avoid cluttering smaller planets
-        if (planetData.radius < 1.5) return;
+    function createFallbackSpaceStation(planetData, pivot) {
+        // Create a simple station using basic shapes
+        const stationGroup = new THREE.Group();
         
+        // Main cylinder body
+        const bodyGeometry = new THREE.CylinderGeometry(0.5, 0.5, 2, 8);
+        const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        stationGroup.add(body);
+        
+        // Solar panels
+        const panelGeometry = new THREE.BoxGeometry(3, 0.1, 1);
+        const panelMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x2244AA,
+            shininess: 100
+        });
+        
+        const leftPanel = new THREE.Mesh(panelGeometry, panelMaterial);
+        leftPanel.position.x = -1.5;
+        stationGroup.add(leftPanel);
+        
+        const rightPanel = new THREE.Mesh(panelGeometry, panelMaterial);
+        rightPanel.position.x = 1.5;
+        stationGroup.add(rightPanel);
+        
+        return stationGroup;
+    }
+
+    function createSpaceStation(planetData, planet) {
         try {
-            // Check if GLTFLoader is available
-            if (typeof THREE.GLTFLoader === 'undefined') {
-                console.warn('GLTFLoader not available. Space station not added.');
-                return;
+            // Create a pivot for orbit that's a child of the planet
+            const pivot = new THREE.Object3D();
+            pivot.name = `${planetData.name}StationPivot`;
+            planet.add(pivot);
+            
+            // Set up orbit parameters
+            const orbitDistance = planetData.radius * 2.5;
+            const orbitSpeed = 0.0005;
+            const orbitHeight = planetData.radius * 0.3;
+            
+            // Random starting angle and inclination
+            const startAngle = Math.random() * Math.PI * 2;
+            pivot.rotation.y = startAngle;
+            const inclination = (Math.random() * 0.2) - 0.1;
+            pivot.rotation.x = inclination;
+            
+            // Try to load the GLTF model
+            if (typeof THREE.GLTFLoader !== 'undefined') {
+                const loader = new THREE.GLTFLoader();
+                
+                loader.load(
+                    spaceStationModelPath,
+                    function(gltf) {
+                        const spaceStation = gltf.scene;
+                        setupSpaceStation(spaceStation, planetData, pivot, orbitDistance, orbitHeight, orbitSpeed);
+                    },
+                    function(xhr) {
+                        if (xhr.lengthComputable) {
+                            const percentComplete = xhr.loaded / xhr.total * 100;
+                            console.log(`${planetData.name} station: ${Math.round(percentComplete)}% loaded`);
+                        }
+                    },
+                    function(error) {
+                        console.warn(`Using fallback station for ${planetData.name} due to loading error:`, error);
+                        const fallbackStation = createFallbackSpaceStation(planetData, pivot);
+                        setupSpaceStation(fallbackStation, planetData, pivot, orbitDistance, orbitHeight, orbitSpeed);
+                    }
+                );
+            } else {
+                console.warn('GLTFLoader not available, using fallback station');
+                const fallbackStation = createFallbackSpaceStation(planetData, pivot);
+                setupSpaceStation(fallbackStation, planetData, pivot, orbitDistance, orbitHeight, orbitSpeed);
             }
-            
-            // Load the space station model
-            const loader = new THREE.GLTFLoader();
-            
-            loader.load(
-                spaceStationModelPath,
-                function(gltf) {
-                    const spaceStation = gltf.scene;
-                    
-                    // Scale the space station appropriately
-                    // Using smaller scale for larger planets
-                    const scale = 0.05 * (3 / planetData.radius);
-                    spaceStation.scale.set(scale, scale, scale);
-                    
-                    // Create orbit parameters
-                    const orbitDistance = planetData.radius * 2; // Orbit at twice the planet's radius
-                    const orbitSpeed = planetData.orbitSpeed * 1.5; // Orbit 1.5x as fast as the planet
-                    const orbitHeight = planetData.radius * 0.2; // Slight vertical offset
-                    
-                    // Create a pivot for orbit
-                    const pivot = new THREE.Object3D();
-                    pivot.name = `${planetData.name}StationPivot`;
-                    
-                    // Random starting angle
-                    const startAngle = Math.random() * Math.PI * 2;
-                    pivot.rotation.y = startAngle;
-                    
-                    // Add some inclination for variety (but not too much)
-                    const inclination = (Math.random() * 0.2) - 0.1; // -0.1 to 0.1 radians
-                    pivot.rotation.x = inclination;
-                    
-                    // Position station at its orbit distance
-                    spaceStation.position.x = orbitDistance;
-                    spaceStation.position.y = orbitHeight;
-                    
-                    // Rotate the station to face "forward" in its orbit
-                    spaceStation.rotation.y = Math.PI / 2;
-                    
-                    // Add a light to the space station (optional)
-                    const stationLight = new THREE.PointLight(0xFFFFFF, 0.5, orbitDistance * 2);
-                    stationLight.position.set(0, 0, 0);
-                    spaceStation.add(stationLight);
-                    
-                    // Add station to pivot and pivot to planet
-                    pivot.add(spaceStation);
-                    planet.add(pivot);
-                    
-                    // Store pivot reference for animation
-                    if (!planet.userData.spaceStations) {
-                        planet.userData.spaceStations = [];
-                    }
-                    
-                    planet.userData.spaceStations.push({
-                        pivot: pivot,
-                        station: spaceStation,
-                        orbitSpeed: orbitSpeed
-                    });
-                    
-                    console.log(`Space station added to ${planetData.name}`);
-                },
-                function(xhr) {
-                    // Progress callback (optional)
-                    if (xhr.lengthComputable) {
-                        const percentComplete = xhr.loaded / xhr.total * 100;
-                        console.log(`${planetData.name} station: ${Math.round(percentComplete)}% loaded`);
-                    }
-                },
-                function(error) {
-                    console.error(`Error loading space station for ${planetData.name}:`, error);
-                }
-            );
         } catch (error) {
             console.error(`Error creating space station for ${planetData.name}:`, error);
         }
+    }
+    
+    /**
+     * Set up a space station with the correct scale, position, and lighting
+     */
+    function setupSpaceStation(station, planetData, pivot, orbitDistance, orbitHeight, orbitSpeed) {
+        // Scale based on planet size but ensure minimum visibility
+        const baseScale = Math.max(0.2, planetData.radius * 0.03);
+        station.scale.set(baseScale, baseScale, baseScale);
+        
+        // Position station at its orbit distance
+        station.position.x = orbitDistance;
+        station.position.y = orbitHeight;
+        
+        // Rotate the station to face "forward" in its orbit
+        station.rotation.y = Math.PI / 2;
+        
+        // Ensure the station is always visible
+        station.traverse(function(child) {
+            if (child.isMesh) {
+                child.frustumCulled = false;
+            }
+        });
+        
+        // Add a light to make the station more visible
+        const stationLight = new THREE.PointLight(0xFFFFFF, 0.8, orbitDistance * 3);
+        stationLight.position.set(0, 0, 0);
+        station.add(stationLight);
+        
+        // Add station to pivot
+        pivot.add(station);
+        
+        // Store reference for animation
+        const planet = pivot.parent;
+        if (!planet.userData.spaceStations) {
+            planet.userData.spaceStations = [];
+        }
+        
+        planet.userData.spaceStations.push({
+            pivot: pivot,
+            station: station,
+            orbitSpeed: orbitSpeed
+        });
+        
+        console.log(`Space station added to ${planetData.name}`);
     }
     
     // Public methods
@@ -924,9 +975,7 @@ const PlanetSetup = (function() {
             orbitGroup.name = "solarSystem";
             scene.add(orbitGroup);
             
-        // Modified section of the init function in planetSetup.js
-
-            // Inside the init function, replace the planet creation loop with this:
+            // Create planets with improved visibility settings
             planetaryData.forEach((planetData, index) => {
                 // Create orbit line first (to be behind planets)
                 const orbitLine = createOrbitLine(planetData);
@@ -937,29 +986,27 @@ const PlanetSetup = (function() {
                 const planetPivot = new THREE.Object3D();
                 planetPivot.name = `${planetData.name}Orbit`;
                 
-                // ADDED: Calculate a unique starting angle for each planet
-                // Method 1: Even distribution around the sun
+                // Calculate a unique starting angle for each planet
                 const startAngle = (index / planetaryData.length) * Math.PI * 2;
-                
-                // Apply the starting angle to the pivot
                 planetPivot.rotation.y = startAngle;
-
+                
                 if (planetData.orbitalInclination) {
                     planetPivot.rotation.x = planetData.orbitalInclination;
                 }
                 
                 orbitGroup.add(planetPivot);
                 
-                // Create the planet
+                // Create the planet with improved materials
                 const planet = createPlanetMesh(planetData);
                 
-                // Position planet at its orbital distance
-                planet.position.x = planetData.distance;
-                planet.position.y = 0;
-                planet.position.z = 0;
+                // Ensure planet is always visible
+                planet.frustumCulled = false;
                 
                 // Add planet to pivot
                 planetPivot.add(planet);
+                
+                // Position planet at its orbital distance
+                planet.position.x = planetData.distance;
                 
                 // Add to planets array for animation
                 planets.push({
@@ -970,22 +1017,27 @@ const PlanetSetup = (function() {
                 
                 // Add rings if the planet has them
                 if (planetData.hasRings) {
-                    createRingSystem(planet, planetData);
+                    const rings = createRingSystem(planet, planetData);
+                    if (rings) {
+                        rings.frustumCulled = false;
+                    }
                 }
                 
                 // Create moons for the planet
                 if (planetData.moons && planetData.moons.length > 0) {
                     planetData.moons.forEach(moonData => {
-                        createMoon(moonData, planet);
+                        const moon = createMoon(moonData, planet);
+                        if (moon) {
+                            moon.frustumCulled = false;
+                        }
                     });
                 }
                 
                 // Create a space station orbiting the planet
                 createSpaceStation(planetData, planet);
             });
-                        
-            console.log('Planetary system initialized with', planets.length, 'planets and', moons.length, 'moons');
             
+            console.log('Planetary system initialized with', planets.length, 'planets');
             return planets;
         },
         

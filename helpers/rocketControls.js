@@ -210,12 +210,13 @@ const RocketControls = (function() {
         if (sun) {
             const sunPosition = sun.position.clone();
             
-            // The sun radius is typically defined as a constant in SunSetup.js (SUN_RADIUS)
-            // If not accessible, fallback to a reasonable value
-            const sunRadius = 100; // Default sun radius if not accessible
+            // Get the actual sun radius from userData or SunSetup
+            const sunRadius = (sun.userData && sun.userData.radius) || 
+                            (typeof SunSetup !== 'undefined' && SunSetup.SUN_RADIUS) || 
+                            150; // Increased fallback radius
             
             // Use a larger collision distance for the sun (it's hotter!)
-            const sunCollisionDistance = 120;
+            const sunCollisionDistance = sunRadius * 0.8; // Make collision distance relative to sun size
             
             const distance = sunPosition.distanceTo(newPosition);
             const minDistance = sunRadius + sunCollisionDistance;
@@ -235,11 +236,11 @@ const RocketControls = (function() {
                 
                 // Push the rocket out to valid position with a little extra margin for the sun
                 adjustedPosition = sunPosition.clone().add(
-                    pushDirection.multiplyScalar(minDistance + 0.5)
+                    pushDirection.multiplyScalar(minDistance + 2)
                 );
                 
                 // Dramatic velocity reduction for sun collision (it's hot!)
-                velocity.multiplyScalar(0.3);
+                velocity.multiplyScalar(0.2); // More dramatic velocity reduction
                 
                 // Notify HUD if available
                 if (typeof HudManager !== 'undefined') {
@@ -288,45 +289,54 @@ const RocketControls = (function() {
         }
         
         // Continue with existing planet collision detection
-        if (!planets || planets.length === 0) return adjustedPosition;
-        
-        // First, check if we need to update the planet cache
+        // Always update planets array to ensure we have the latest positions
         if (typeof PlanetSetup !== 'undefined' && PlanetSetup.getPlanets) {
             planets = PlanetSetup.getPlanets() || [];
         }
+        
+        if (!planets || planets.length === 0) return adjustedPosition;
         
         // Check collision with planets
         for (const planetObj of planets) {
             if (!planetObj.planet) continue;
             
             const planet = planetObj.planet;
-            const planetPosition = planet.position.clone();
-            const planetRadius = planet.userData.radius || planet.geometry.parameters.radius || 1;
-            const distance = planetPosition.distanceTo(adjustedPosition);
             
-            // Consider planet radii and a safety margin for collision
+            // Get the planet's world position by combining pivot and planet positions
+            const worldPosition = new THREE.Vector3();
+            planet.getWorldPosition(worldPosition);
+            
+            // Get planet radius from userData, geometry, or fallback
+            const planetRadius = (planet.userData && planet.userData.radius) || 
+                               (planet.geometry && planet.geometry.parameters.radius) || 
+                               5; // Fallback radius
+            
+            // Increase COLLISION_DISTANCE for better detection
+            const COLLISION_DISTANCE = planetRadius * 0.5; // Make collision distance relative to planet size
+            
+            const distance = worldPosition.distanceTo(adjustedPosition);
             const minDistance = planetRadius + COLLISION_DISTANCE;
             
             // Add debug logging when very close to a planet
             if (distance < planetRadius * 3) {
-                console.log(`Near ${planet.userData.name}: distance=${distance.toFixed(2)}, radius=${planetRadius.toFixed(2)}, min=${minDistance.toFixed(2)}`);
+                console.log(`Near ${planet.userData.name}: distance=${distance.toFixed(2)}, radius=${planetRadius.toFixed(2)}, min=${minDistance.toFixed(2)}, pos=(${worldPosition.x.toFixed(1)}, ${worldPosition.y.toFixed(1)}, ${worldPosition.z.toFixed(1)})`);
             }
             
             if (distance < minDistance) {
                 collisionOccurred = true;
                 
-                // Calculate direction from planet to rocket
+                // Calculate direction from planet to rocket using world position
                 const pushDirection = new THREE.Vector3()
-                    .subVectors(adjustedPosition, planetPosition)
+                    .subVectors(adjustedPosition, worldPosition)
                     .normalize();
                 
-                // Push the rocket out to valid position
-                adjustedPosition = planetPosition.clone().add(
-                    pushDirection.multiplyScalar(minDistance + 0.1)
+                // Push the rocket out to valid position with more margin
+                adjustedPosition = worldPosition.clone().add(
+                    pushDirection.multiplyScalar(minDistance + 1)
                 );
                 
-                // Reduce velocity as a result of collision
-                velocity.multiplyScalar(0.4);
+                // Reduce velocity more dramatically on collision
+                velocity.multiplyScalar(0.3);
                 
                 // Notify HUD if available
                 if (typeof HudManager !== 'undefined' && HudManager.showNotification) {

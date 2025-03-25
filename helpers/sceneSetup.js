@@ -203,10 +203,33 @@ const SceneSetup = (function() {
         isInitialized = false;
       },
       
-      // Getters for accessing private variables
-      getScene: function() { return scene; },
-      getRenderer: function() { return renderer; },
-      getCamera: function() { return camera; },
-      getControls: function() { return controls; }
+      /**
+       * Get the camera instance
+       * @returns {THREE.Camera} The camera instance
+       */
+      getCamera: function() {
+        return camera;
+      },
+      
+      /**
+       * Get the renderer instance
+       * @returns {THREE.WebGLRenderer} The renderer instance
+       */
+      getRenderer: function() {
+        return renderer;
+      },
+      
+      /**
+       * Get the orbit controls instance
+       * @returns {THREE.OrbitControls} The orbit controls instance
+       */
+      getControls: function() {
+        return controls;
+      }
     };
   })();
+
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = SceneSetup;
+}

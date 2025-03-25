@@ -31,11 +31,10 @@ async function init() {
     
     // Initialize the Three.js scene
     scene = SceneSetup.initializeScene('scene-container', {
-      cameraPosition: { x: 0, y: 30, z: 90 }, // Adjusted for better view of solar system
-      enableOrbitControls: true // Enable for development
+      cameraPosition: { x: 0, y: 30, z: 90 },
+      enableOrbitControls: true
     });
     
-    // Get references to camera and renderer for easier access
     camera = SceneSetup.getCamera();
     renderer = SceneSetup.getRenderer();
     
@@ -47,7 +46,7 @@ async function init() {
     
     // Initialize input manager first
     if (typeof InputManager !== 'undefined') {
-      InputManager.init();
+      await InputManager.init();
       console.log('Input Manager initialized');
     } else {
       console.warn('InputManager not available - controls may be limited');
@@ -55,7 +54,7 @@ async function init() {
     
     // Initialize HUD manager
     if (typeof HudManager !== 'undefined') {
-      HudManager.init();
+      await HudManager.init();
       console.log('HUD Manager initialized');
     } else {
       console.warn('HudManager not available - UI updates will be limited');
@@ -71,7 +70,7 @@ async function init() {
     
     // Initialize starfield
     if (typeof Starfield !== 'undefined') {
-      Starfield.init(scene);
+      await Starfield.init(scene);
       console.log('Starfield initialized');
     } else {
       console.warn('Starfield not available - background will be empty');
@@ -79,7 +78,7 @@ async function init() {
     
     // Initialize sun with enhanced corona
     if (typeof SunSetup !== 'undefined') {
-      sun = SunSetup.init(scene);
+      sun = await SunSetup.init(scene);
       console.log('Sun initialized');
     } else {
       console.warn('SunSetup not available - using placeholder sun');
@@ -89,7 +88,7 @@ async function init() {
     
     // Initialize planets
     if (typeof PlanetSetup !== 'undefined') {
-      PlanetSetup.init(scene);
+      await PlanetSetup.init(scene);
       console.log('Planets initialized');
     } else {
       console.error('PlanetSetup not available - solar system cannot be created');
@@ -101,7 +100,7 @@ async function init() {
     
     // Initialize docking system
     if (typeof DockingSystem !== 'undefined') {
-      DockingSystem.init();
+      DockingSystem.init(scene, camera, renderer);
       console.log('Docking System initialized');
     } else {
       console.warn('DockingSystem not available - docking with planets will be disabled');
@@ -118,8 +117,12 @@ async function init() {
     // Make sure no UI panels are showing at startup
     hideAllUIPanels();
     
+    // Set up frustum culling with larger distances
+    camera.far = 5000;
+    camera.updateProjectionMatrix();
+    
     // Start the animation loop with our update function
-    SceneSetup.startAnimationLoop(update);
+    animate();
     
     // Mark as initialized
     isInitialized = true;
@@ -245,19 +248,12 @@ async function initRocketSystem() {
 }
 
 /**
- * Main update function called every frame
- * @param {number} timestamp - Current timestamp from requestAnimationFrame
+ * Main animation loop
  */
-function update(timestamp) {
-  // Calculate delta time for smooth animation
-  const deltaTime = timestamp - lastFrameTime || 0;
+function animate() {
+  const timestamp = performance.now();
+  const deltaTime = (timestamp - lastFrameTime) / 1000;
   lastFrameTime = timestamp;
-  
-  // Scale by animation speed factor (seconds)
-  const deltaSeconds = (deltaTime / 1000) * animationSpeed;
-  
-  // Safely increment time (with a cap to prevent huge jumps if tab was inactive)
-  timeElapsed += Math.min(deltaSeconds, 0.1);
   
   try {
     // Update starfield if available
@@ -272,27 +268,36 @@ function update(timestamp) {
     
     // Update planet positions if available
     if (typeof PlanetSetup !== 'undefined' && PlanetSetup.updatePlanetPositions) {
-      PlanetSetup.updatePlanetPositions(deltaSeconds, timeElapsed);
+      PlanetSetup.updatePlanetPositions(deltaTime, timestamp);
     }
     
     // Update rocket system
-    updateRocketSystem(timestamp, deltaSeconds);
+    updateRocketSystem(timestamp, deltaTime);
+    
+    // Update docking system
+    if (typeof DockingSystem !== 'undefined') {
+      DockingSystem.update();
+      
+      // Use docking camera if docked, otherwise use main camera
+      const activeCamera = DockingSystem.isDocked() ? 
+          DockingSystem.getDockingCamera() : camera;
+      
+      // Render with the active camera
+      renderer.render(scene, activeCamera);
+    } else {
+      // Fallback to main camera if docking system not available
+      renderer.render(scene, camera);
+    }
     
     // Update debug panel if available
     if (typeof DebugMode !== 'undefined' && DebugMode.update) {
       DebugMode.update(timestamp);
     }
     
+    // Request next frame
+    requestAnimationFrame(animate);
   } catch (error) {
-    // Log any update errors
-    console.error('Error in update loop:', error);
-    
-    // Log with debugging system if available
-    if (typeof DebugMode !== 'undefined') {
-      DebugMode.logError('Update loop error', error);
-    }
-    
-    // Continue execution - don't halt the animation loop
+    console.error('Error in animation loop:', error);
   }
 }
 
@@ -511,7 +516,7 @@ function showNotification(message) {
 // Export functions for potential use by other modules
 window.AboutPage = {
   init,
-  update,
+  animate,
   setAnimationSpeed: function(speed) {
     animationSpeed = speed;
     return animationSpeed;
