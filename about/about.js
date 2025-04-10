@@ -215,9 +215,9 @@ async function initRocketSystem() {
     await RocketControls.init(scene, camera);
     console.log('Rocket controls initialized');
     
-    // Register docking key (E) handling
+    // Register docking key (space) handling
     if (typeof InputManager !== 'undefined' && typeof DockingSystem !== 'undefined') {
-      InputManager.registerKeyListener('e', function(isPressed) {
+      InputManager.registerKeyListener(' ', function(isPressed) {
         const dockingPrompt = document.getElementById('docking-prompt');
         if (isPressed && dockingPrompt && !dockingPrompt.classList.contains('hidden')) {
           DockingSystem.initiateDocking();
@@ -276,7 +276,17 @@ function animate() {
     
     // Update docking system
     if (typeof DockingSystem !== 'undefined') {
+      // Get the rocket and planets for docking checks
+      const rocket = typeof RocketControls !== 'undefined' ? RocketControls.getRocketObject() : null;
+      const planets = typeof PlanetSetup !== 'undefined' ? PlanetSetup.getPlanets() : [];
+      
+      // Update docking system with current rocket and planets
       DockingSystem.update();
+      
+      // Check docking proximity
+      if (rocket && planets.length > 0) {
+        DockingSystem.checkDockingProximity(rocket, planets);
+      }
       
       // Use docking camera if docked, otherwise use main camera
       const activeCamera = DockingSystem.isDocked() ? 

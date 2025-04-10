@@ -211,7 +211,7 @@ const HudManager = (function() {
                 this.showNotification('Welcome to the Space Exploration System!');
                 
                 setTimeout(() => {
-                    displayAIMessage('Use WASD keys to navigate, SHIFT to boost, and E to dock when near a planet.');
+                    displayAIMessage('Use WASD keys to navigate, SHIFT to boost, and SPACE to dock when near a planet.');
                 }, 3000);
             }, 1000);
         },
@@ -314,34 +314,34 @@ const HudManager = (function() {
                 // If planet name is provided, include it in the prompt
                 const dockingText = document.getElementById('docking-text');
                 if (dockingText && planetName) {
-                    dockingText.textContent = `PRESS E TO DOCK WITH ${planetName.toUpperCase()}`;
+                    dockingText.textContent = `PRESS SPACE TO DOCK WITH ${planetName.toUpperCase()}`;
                 } else if (dockingText) {
-                    dockingText.textContent = 'PRESS E TO DOCK';
+                    dockingText.textContent = 'PRESS SPACE TO DOCK';
                 }
                 
                 // Show a notification
                 this.showNotification(`${planetName || 'Planet'} docking available`);
                 
                 // Show an AI message
-                displayAIMessage(`We're in range to dock with ${planetName || 'the planet'}. Press E to initiate docking sequence.`);
+                displayAIMessage(`We're in range to dock with ${planetName || 'the planet'}. Press SPACE to initiate docking sequence.`);
             } else {
                 dockingPrompt.classList.add('hidden');
             }
         },
         
         /**
-         * Show a notification message
+         * Show a notification message (only for planet collisions)
          * @param {string} message - Message to display
          * @param {string} type - Type of notification (info, warning, error)
          */
         showNotification: function(message, type = 'info') {
-            // Add to queue
-            notificationQueue.push({ message, type });
-            
-            // Try to process
-            if (!notificationActive) {
-                processNotificationQueue();
+            // Only show planet collision messages
+            if (!message.includes('COLLISION') && !message.includes('Proximity warning')) {
+                return;
             }
+            
+            // Show notification immediately without queuing
+            showNotificationElement(message, type);
         },
         
         /**
