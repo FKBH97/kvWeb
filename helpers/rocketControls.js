@@ -31,7 +31,7 @@ const RocketControls = (function() {
     let boostCooldownEnd = 0;
     
     // Collision parameters
-    const COLLISION_DISTANCE = 8.0; // Increased to work with larger planets
+    const COLLISION_DISTANCE = 4; // Increased to work with larger planets
     
     // Cache for planet objects (updated each frame)
     let planets = [];
@@ -57,7 +57,8 @@ const RocketControls = (function() {
                 (gltf) => {
                     const model = gltf.scene;
                     model.scale.set(0.5, 0.5, 0.5); // Adjust scale as needed
-                    model.rotation.x = Math.PI / 2; // Rotate to face forward
+                    model.rotation.x = 0; // Changed from Math.PI
+                    model.rotation.y = 0; // Changed from Math.PI
                     resolve(model);
                 },
                 undefined,
@@ -331,7 +332,14 @@ const RocketControls = (function() {
             
             // Get the planet's world position by combining pivot and planet positions
             const worldPosition = new THREE.Vector3();
-            planet.getWorldPosition(worldPosition);
+            if (typeof planet.getWorldPosition === 'function') {
+                planet.getWorldPosition(worldPosition);
+            } else if (planet.position) {
+                worldPosition.copy(planet.position);
+            } else {
+                console.warn('Planet has no position property or getWorldPosition method');
+                continue;
+            }
             
             // Get planet radius from userData, geometry, or fallback
             const planetRadius = (planet.userData && planet.userData.radius) || 
@@ -424,7 +432,7 @@ const RocketControls = (function() {
             forwardDirection = velocity.clone().normalize();
         } else {
             // Default forward direction based on current orientation
-            forwardDirection = new THREE.Vector3(0, 0, -1);
+            forwardDirection = new THREE.Vector3(0, 0, 1); // Changed from -1 to 1
             forwardDirection.applyQuaternion(rocket.quaternion);
         }
         
@@ -432,26 +440,26 @@ const RocketControls = (function() {
         const backwardDirection = forwardDirection.clone().negate();
         
         // Position camera behind and slightly above the rocket
-        const cameraDistance = 10; // Increased distance for better view
-        const cameraHeight = 3; // Increased height for better view
+        const cameraDistance = 15; // Increased from 10 for better view
+        const cameraHeight = 5;   // Increased from 3 for better view
         
         const cameraPosition = position.clone()
             .add(backwardDirection.multiplyScalar(cameraDistance))
             .add(new THREE.Vector3(0, cameraHeight, 0));
         
         // STEP 3: Smoothly move camera to this position
-        camera.position.lerp(cameraPosition, 0.1);
+        camera.position.lerp(cameraPosition, 0.05); // Reduced from 0.1 for smoother movement
         
         // STEP 4: Look at the rocket's position plus a bit of its forward direction
         const lookTarget = position.clone().add(
-            forwardDirection.clone().multiplyScalar(5) // Increased look-ahead distance
+            forwardDirection.clone().multiplyScalar(10) // Increased from 5 for better look-ahead
         );
         
         camera.lookAt(lookTarget);
         
         // STEP 5: Update FOV for speed effect
         if (boostActive) {
-            const targetFOV = 85; // Increased FOV for boost
+            const targetFOV = 85;
             camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 0.05);
             camera.updateProjectionMatrix();
         } else {
@@ -478,20 +486,83 @@ const RocketControls = (function() {
             rocket = createSimpleRocket();
         }
         
+        // Add rocket to scene
         scene.add(rocket);
         
         // Add engine flame
         addEngineFlame();
         
         // Set initial position
+        position.set(0, 0, 50);  // Start in front of camera
         rocket.position.copy(position);
         
-        // Log initialization if LoggingSystem is available
+        // Set initial rotation to face forward
+        rocket.rotation.x = 0;
+        rocket.rotation.y = 0;
+        
+        // Make sure rocket is visible
+        rocket.visible = true;
+        
+        // Log initialization
+        console.log('Rocket initialized at position:', position);
+        
+        // Initialize velocity and acceleration
+        velocity.set(0, 0, 0);
+        acceleration.set(0, 0, 0);
+        
         if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logEvent) {
             LoggingSystem.logEvent('rocket_initialized', {
                 position: position,
                 time: Date.now()
             });
+        }
+    }
+    
+    /**
+     * Handle collision with a planet
+     * @param {Object} planet - The planet that was collided with
+     */
+    function handleCollision(planet) {
+        if (!rocket) return;
+        
+        console.log(`Collision with ${planet.userData.name}`);
+        
+        // Log collision
+        if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logEvent) {
+            LoggingSystem.logEvent('collision_detected', {
+                planet: planet.userData.name,
+                time: Date.now()
+            });
+        }
+        
+        // Get planet position
+        const worldPosition = new THREE.Vector3();
+        if (typeof planet.getWorldPosition === 'function') {
+            planet.getWorldPosition(worldPosition);
+        } else if (planet.position) {
+            worldPosition.copy(planet.position);
+        } else {
+            console.warn('Planet has no position property or getWorldPosition method');
+            return;
+        }
+        
+        // Calculate direction from planet to rocket
+        const direction = new THREE.Vector3()
+            .subVectors(rocket.position, worldPosition)
+            .normalize();
+        
+        // Move rocket away from planet
+        const planetRadius = planet.userData.radius || 5;
+        const safeDistance = planetRadius * 1.2; // 20% beyond planet radius
+        
+        // Set new position
+        rocket.position.copy(worldPosition).add(
+            direction.multiplyScalar(safeDistance)
+        );
+        
+        // Show notification
+        if (typeof HudManager !== 'undefined' && HudManager.showNotification) {
+            HudManager.showNotification(`Collision with ${planet.userData.name} avoided!`, 'warning');
         }
     }
     
@@ -591,7 +662,7 @@ const RocketControls = (function() {
                     // Calculate acceleration based on input
                     if (isThrusting) {
                         // Apply forward acceleration in the direction the rocket is facing
-                        const forward = new THREE.Vector3(0, 0, -1);
+                        const forward = new THREE.Vector3(0, 0, 1); // Changed from -1 to 1
                         forward.applyQuaternion(rocket.quaternion);
                         
                         const thrustAmount = ACCELERATION_FACTOR * (boostActive ? BOOST_MULTIPLIER : 1.0);
@@ -600,24 +671,24 @@ const RocketControls = (function() {
                     
                     // Apply side-to-side rotation
                     if (isMovingLeft) {
-                        rocket.rotation.y += 0.03;
+                        rocket.rotation.y -= 0.03; // Reversed from +=
                     }
                     if (isMovingRight) {
-                        rocket.rotation.y -= 0.03;
+                        rocket.rotation.y += 0.03; // Reversed from -=
                     }
                     
                     // Apply up/down rotation
                     if (isMovingUp) {
-                        rocket.rotation.x += 0.02;
+                        rocket.rotation.x -= 0.02; // Reversed from +=
                     }
                     if (isMovingDown) {
-                        rocket.rotation.x -= 0.02;
+                        rocket.rotation.x += 0.02; // Reversed from -=
                     }
                     
                     // Apply backward deceleration
                     if (isMovingBack) {
                         // Slow down by applying reverse acceleration
-                        const forward = new THREE.Vector3(0, 0, -1);
+                        const forward = new THREE.Vector3(0, 0, 1); // Changed from -1 to 1
                         forward.applyQuaternion(rocket.quaternion);
                         
                         // Only apply braking if we're moving
@@ -675,7 +746,7 @@ const RocketControls = (function() {
                     HudManager.updateSpeed(currentSpeed);
                 }
                 
-                // Check for nearby planets and update docking proximity
+                // Check for nearby planets and handle docking proximity
                 this.checkNearbyPlanets();
                 
                 // Update camera to follow the rocket
@@ -731,7 +802,7 @@ const RocketControls = (function() {
                 if (rocket) {
                     rocket.position.copy(position);
                     
-                    // Reset rotation
+                    // Reset rotation to face forward
                     rocket.rotation.set(Math.PI / 2, 0, 0);
                     
                     // Important: Make sure there's no residual momentum
@@ -811,48 +882,58 @@ const RocketControls = (function() {
         },
         
         /**
-         * Check for nearby planets and update docking proximity
+         * Check for nearby planets and handle collisions
          */
         checkNearbyPlanets: function() {
-            if (!DockingSystem || typeof DockingSystem.checkDockingProximity !== 'function') {
-                console.warn('DockingSystem not available for proximity check');
-                return;
-            }
+            if (!rocket || !planets || !DockingSystem) return;
             
-            // Get current rocket position
-            const rocketPosition = this.getCurrentPosition();
-            
-            // Find the nearest planet
             let nearestPlanet = null;
-            let nearestDistance = Infinity;
+            let minDistance = Infinity;
             
-            for (const planetObj of planets) {
-                if (!planetObj.planet) continue;
+            // Get rocket's world position
+            const rocketPosition = rocket.getWorldPosition(new THREE.Vector3());
+            
+            // Check each planet
+            planets.forEach(planetObj => {
+                if (!planetObj || !planetObj.planet) return;
                 
                 const planet = planetObj.planet;
                 
-                // Get the planet's world position
-                const planetPosition = new THREE.Vector3();
-                planet.getWorldPosition(planetPosition);
-                
-                // Calculate distance to planet
-                const distance = planetPosition.distanceTo(rocketPosition);
-                
-                // Update nearest planet if this one is closer
-                if (distance < nearestDistance) {
-                    nearestDistance = distance;
-                    nearestPlanet = planet;
+                // Get planet's position - handle both cases where getWorldPosition exists or not
+                let planetPosition;
+                if (typeof planet.getWorldPosition === 'function') {
+                    planetPosition = planet.getWorldPosition(new THREE.Vector3());
+                } else if (planet.position) {
+                    planetPosition = planet.position.clone();
+                } else {
+                    console.warn('Planet has no position property or getWorldPosition method');
+                    return;
                 }
                 
-                // Log distances for debugging
-                if (distance < 1000) { // Only log when reasonably close
-                    console.log(`Distance to ${planet.userData.name}: ${distance.toFixed(2)}, position: (${planetPosition.x.toFixed(2)}, ${planetPosition.y.toFixed(2)}, ${planetPosition.z.toFixed(2)})`);
+                const distance = rocketPosition.distanceTo(planetPosition);
+                
+                // Check for collision
+                const planetRadius = planet.userData.radius || 5;
+                if (distance < planetRadius) {
+                    handleCollision(planet);
                 }
-            }
+                
+                // Check for docking proximity
+                if (DockingSystem.checkDockingProximity(rocket, planet)) {
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        nearestPlanet = planet;
+                    }
+                }
+            });
             
-            // If we found a nearest planet, check docking proximity
-            if (nearestPlanet) {
-                DockingSystem.checkDockingProximity(nearestPlanet, nearestDistance);
+            // Update HUD with nearest planet info
+            if (typeof HudManager !== 'undefined') {
+                if (nearestPlanet) {
+                    HudManager.updateDockingPrompt(true, nearestPlanet.userData.name);
+                } else {
+                    HudManager.updateDockingPrompt(false);
+                }
             }
         },
         

@@ -14,8 +14,6 @@ const DockingSystem = (function() {
     let dockingInterface = null;
     let planetInfoPanel = null;
     let dockingCamera = null;
-    let debugSpheres = [];
-    let showDebugSpheres = false;
     
     // Message throttling
     let lastMessageTime = 0;
@@ -30,6 +28,9 @@ const DockingSystem = (function() {
     // Flag to track if the rocket has moved from its initial position
     let hasRocketMoved = false;
     let initialRocketPosition = null;
+    
+    // Docking checks
+    let dockingChecksActive = false;
     
     /**
      * Create the planet info panel that appears when docked
@@ -396,9 +397,11 @@ const DockingSystem = (function() {
             // Register space key for docking
             InputManager.registerKeyListener(' ', handleDockingKey);
             console.log('Space key registered for docking');
-        } else {
-            console.error('InputManager not available for docking key registration');
         }
+        
+        // Initialize docking checks
+        dockingChecksActive = true;
+        console.log('Docking system initialized');
         
         // Store initial rocket position
         if (typeof RocketControls !== 'undefined') {
@@ -415,13 +418,17 @@ const DockingSystem = (function() {
         if (!isPressed) return; // Only handle key down
         
         console.log('Space key pressed, isDocked:', isDocked, 'canDock:', canDock());
+        console.log('Current planet:', currentPlanet ? currentPlanet.userData.name : 'null');
         
         if (isDocked) {
+            console.log('Attempting to undock...');
             exitDocking();
         } else if (canDock()) {
+            console.log('Attempting to dock...');
             initiateDocking();
         } else {
             console.log('Cannot dock: not close enough to a space station');
+            console.log('Current planet space stations:', currentPlanet ? currentPlanet.userData.spaceStations : 'none');
             // Show a notification that docking is not possible
             if (typeof HudManager !== 'undefined' && HudManager.showNotification) {
                 HudManager.showNotification('Not close enough to dock', 'warning');
@@ -443,6 +450,8 @@ const DockingSystem = (function() {
         const station = getNearestSpaceStation();
         if (!station) {
             console.log('No space station found for docking');
+            console.log('Planet userData:', currentPlanet.userData);
+            console.log('Space stations array:', currentPlanet.userData.spaceStations);
             return false;
         }
         
@@ -453,6 +462,8 @@ const DockingSystem = (function() {
         
         const distance = rocketPos.distanceTo(stationPos);
         console.log(`Distance to station: ${distance}, threshold: ${STATION_DOCK_DISTANCE}`);
+        console.log('Rocket position:', rocketPos);
+        console.log('Station position:', stationPos);
         
         // Check if we're close enough to dock
         const canDockNow = distance < STATION_DOCK_DISTANCE;
@@ -510,7 +521,15 @@ const DockingSystem = (function() {
 
         // Get the planet's position and radius
         const planetPosition = new THREE.Vector3();
-        currentPlanet.getWorldPosition(planetPosition);
+        if (typeof currentPlanet.getWorldPosition === 'function') {
+            currentPlanet.getWorldPosition(planetPosition);
+        } else if (currentPlanet.position) {
+            planetPosition.copy(currentPlanet.position);
+        } else {
+            console.warn('Current planet has no position property or getWorldPosition method');
+            return;
+        }
+        
         const planetRadius = currentPlanet.userData.radius || 1;
 
         // Calculate camera position relative to the planet
@@ -586,7 +605,14 @@ const DockingSystem = (function() {
                 
                 // Calculate target camera position
                 const planetPos = new THREE.Vector3();
-                currentPlanet.getWorldPosition(planetPos);
+                if (typeof currentPlanet.getWorldPosition === 'function') {
+                    currentPlanet.getWorldPosition(planetPos);
+                } else if (currentPlanet.position) {
+                    planetPos.copy(currentPlanet.position);
+                } else {
+                    console.warn('Current planet has no position property or getWorldPosition method');
+                    return;
+                }
                 
                 // Position camera at a good viewing angle (45 degrees from planet)
                 const cameraDistance = currentPlanet.geometry ? 
@@ -711,99 +737,228 @@ const DockingSystem = (function() {
     }
     
     /**
-     * Create a debug sphere to visualize docking proximity
-     * @param {THREE.Vector3} position - Position for the debug sphere
-     * @param {number} radius - Radius of the debug sphere
-     * @param {number} color - Color of the debug sphere
-     * @returns {Object} The created debug sphere
+     * Check if the rocket is close enough to dock with a planet
+     * @param {Object} rocket - The rocket to check
+     * @param {Object} planet - The planet to check
+     * @returns {boolean} Whether the rocket is close enough to dock with the planet
      */
-    function createDockingDebugSphere(position, radius, color) {
-        const geometry = new THREE.SphereGeometry(radius, 32, 32);
-        const material = new THREE.MeshBasicMaterial({
-            color: color,
-            transparent: true,
-            opacity: 0.3,
-            wireframe: true
-        });
-        const sphere = new THREE.Mesh(geometry, material);
-        sphere.position.copy(position);
-        scene.add(sphere);
+    function checkDockingProximity(rocket, planet) {
+        if (!dockingChecksActive) return false;
         
-        const debugObj = {
-            sphere: sphere,
-            position: position,
-            radius: radius
-        };
+        // Get rocket position
+        const rocketPosition = rocket.getWorldPosition(new THREE.Vector3());
         
-        debugSpheres.push(debugObj);
-        return debugObj;
+        // Get planet position - handle both cases where getWorldPosition exists or not
+        let planetPosition;
+        if (typeof planet.getWorldPosition === 'function') {
+            planetPosition = planet.getWorldPosition(new THREE.Vector3());
+        } else if (planet.position) {
+            planetPosition = planet.position.clone();
+        } else {
+            console.warn('Planet has no position property or getWorldPosition method');
+            return false;
+        }
+        
+        const distance = rocketPosition.distanceTo(planetPosition);
+        const planetRadius = planet.userData.radius || 5;
+        
+        // More lenient docking distance check
+        const dockingDistance = planetRadius * 2.5; // Increased from 1.5
+        const canDock = distance <= dockingDistance;
+        
+        // Update current planet if we're in range
+        if (canDock) {
+            currentPlanet = planet;
+            console.log(`In docking range of ${planet.userData.name} (distance: ${distance.toFixed(2)}, threshold: ${dockingDistance.toFixed(2)})`);
+        } else if (currentPlanet === planet) {
+            // Clear current planet if we're moving away from it
+            currentPlanet = null;
+        }
+        
+        // Update HUD if available
+        if (typeof HudManager !== 'undefined') {
+            HudManager.updateDockingPrompt(canDock, planet.userData.name);
+        }
+        
+        return canDock;
     }
     
     /**
-     * Check if the rocket is close enough to dock with a planet
-     * @param {Object} planet - The planet to check
-     * @param {number} distance - The distance to the planet
+     * Exit docking
      */
-    function checkDockingProximity(planet, distance) {
-        if (!planet || !planet.userData) {
-            console.warn('Invalid planet object:', planet);
-            return;
-        }
+    function exitDocking() {
+        if (!isDocked || !currentPlanet) return;
         
-        // Get the planet's world position
-        const planetPosition = new THREE.Vector3();
-        planet.getWorldPosition(planetPosition);
+        console.log(`Exiting docking with ${currentPlanet.userData.name}`);
         
-        // Get the planet's radius and calculate docking threshold
-        const planetRadius = planet.userData.radius || 1;
-        const dockingThreshold = planetRadius * 1.5; // Minimum distance to dock
-        
-        // Check if we're within docking range
-        const canDock = distance <= dockingThreshold;
-        
-        // Create or update debug sphere for docking proximity
-        if (showDebugSpheres) {
-            // Remove existing debug spheres for this planet
-            debugSpheres = debugSpheres.filter(debugObj => {
-                if (debugObj.sphere && debugObj.sphere.userData && debugObj.sphere.userData.planetId === planet.userData.id) {
-                    scene.remove(debugObj.sphere);
-                    return false;
-                }
-                return true;
-            });
+        try {
+            // Log undocking
+            if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logEvent) {
+                LoggingSystem.logEvent('undocking_initiated', {
+                    planet: currentPlanet.userData.name,
+                    time: Date.now()
+                });
+            }
             
-            // Create new debug sphere at the planet's world position
-            const debugSphere = createDockingDebugSphere(
-                planetPosition,
-                dockingThreshold,
-                canDock ? 0x00ff00 : 0xff0000
-            );
+            // Show notification
+            if (typeof HudManager !== 'undefined' && HudManager.showNotification) {
+                HudManager.showNotification(`Undocking from ${currentPlanet.userData.name}`);
+                HudManager.showAIMessage('Undocking sequence initiated. Returning to normal flight controls.');
+            }
             
-            // Store planet ID for future reference
-            debugSphere.sphere.userData = {
-                planetId: planet.userData.id
-            };
-        }
-        
-        // Update the docking prompt
-        if (typeof HudManager !== 'undefined' && HudManager.updateDockingPrompt) {
-            HudManager.updateDockingPrompt(canDock, planet);
-        }
-        
-        // Log the proximity check
-        if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logEvent) {
-            LoggingSystem.logEvent('docking_proximity_check', {
-                planet: planet.userData.name,
-                distance: distance,
-                threshold: dockingThreshold,
-                canDock: canDock,
-                planetPosition: {
-                    x: planetPosition.x.toFixed(2),
-                    y: planetPosition.y.toFixed(2),
-                    z: planetPosition.z.toFixed(2)
+            // Hide planet info panel
+            if (planetInfoPanel) {
+                planetInfoPanel.classList.add('hidden');
+                planetInfoPanel.style.display = 'none';
+            }
+            
+            // Move the rocket slightly away from the planet to prevent immediate re-docking
+            if (typeof RocketControls !== 'undefined') {
+                const rocketPosition = RocketControls.getPosition();
+                const planetPosition = currentPlanet.position.clone();
+                
+                // Direction from planet to rocket
+                const direction = new THREE.Vector3()
+                    .subVectors(rocketPosition, planetPosition)
+                    .normalize();
+                
+                // Calculate undock position (move further away from planet)
+                const undockPosition = rocketPosition.clone().add(
+                    direction.multiplyScalar(2.0)
+                );
+                
+                // Get rocket object and update position
+                const rocket = RocketControls.getRocketObject();
+                if (rocket) {
+                    rocket.position.copy(undockPosition);
                 }
-            });
+            }
+            
+            // Animate camera transition back to rocket view
+            if (renderer && mainCamera && dockingCamera) {
+                const startTime = performance.now();
+                const transitionDuration = 1000; // 1 second transition
+                
+                // Store initial camera state
+                const initialCameraPosition = dockingCamera.position.clone();
+                const initialCameraQuaternion = dockingCamera.quaternion.clone();
+                
+                // Get rocket for target position
+                const rocket = RocketControls.getRocketObject();
+                if (rocket) {
+                    const targetPosition = new THREE.Vector3();
+                    rocket.getWorldPosition(targetPosition);
+                    
+                    // Calculate target camera position (behind and slightly above rocket)
+                    const rocketDirection = new THREE.Vector3(0, 0, -1);
+                    rocketDirection.applyQuaternion(rocket.quaternion);
+                    const targetCameraPosition = targetPosition.clone().add(
+                        rocketDirection.multiplyScalar(10)
+                    ).add(new THREE.Vector3(0, 2, 0));
+                    
+                    function animateCameraTransition(currentTime) {
+                        const elapsed = currentTime - startTime;
+                        const progress = Math.min(elapsed / transitionDuration, 1);
+                        
+                        // Use smooth easing
+                        const easedProgress = easeInOutCubic(progress);
+                        
+                        // Interpolate camera position
+                        mainCamera.position.lerpVectors(initialCameraPosition, targetCameraPosition, easedProgress);
+                        
+                        // Look at rocket
+                        mainCamera.lookAt(targetPosition);
+                        
+                        if (progress < 1) {
+                            requestAnimationFrame(animateCameraTransition);
+                        } else {
+                            // Transition complete
+                            console.log('Camera transition complete');
+                        }
+                    }
+                    
+                    requestAnimationFrame(animateCameraTransition);
+                }
+            }
+            
+            // Re-enable rocket controls
+            if (typeof RocketControls !== 'undefined' && RocketControls.setEnabled) {
+                RocketControls.setEnabled(true);
+            }
+            
+            // Re-enable input system
+            if (typeof InputManager !== 'undefined' && InputManager.setEnabled) {
+                InputManager.setEnabled(true);
+            }
+            
+            // Log undocking complete
+            if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logEvent) {
+                LoggingSystem.logEvent('undocking_completed', {
+                    planet: currentPlanet.userData.name,
+                    time: Date.now()
+                });
+            }
+            
+            // Reset docking state
+            isDocked = false;
+            const previousPlanet = currentPlanet;
+            currentPlanet = null;
+            
+            // Show temporary message after undocking
+            setTimeout(() => {
+                if (typeof HudManager !== 'undefined' && HudManager.showNotification) {
+                    HudManager.showNotification(`Departed from ${previousPlanet.userData.name}`);
+                }
+            }, 2000);
+            
+        } catch (error) {
+            console.error('Error exiting docking:', error);
+            
+            // Log error
+            if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logError) {
+                LoggingSystem.logError('Undocking failed', error);
+            }
+            
+            // Show error notification
+            if (typeof HudManager !== 'undefined' && HudManager.showNotification) {
+                HudManager.showNotification('Undocking failed - system error', 'error');
+            }
+            
+            // Force reset docking state in case of error
+            isDocked = false;
+            currentPlanet = null;
+            
+            // Force re-enable controls in case of error
+            if (typeof RocketControls !== 'undefined' && RocketControls.setEnabled) {
+                RocketControls.setEnabled(true);
+            }
+            
+            if (typeof InputManager !== 'undefined' && InputManager.setEnabled) {
+                InputManager.setEnabled(true);
+            }
+            
+            // Hide planet info panel
+            if (planetInfoPanel) {
+                planetInfoPanel.classList.add('hidden');
+                planetInfoPanel.style.display = 'none';
+            }
         }
+    }
+    
+    /**
+     * Start docking checks
+     */
+    function startDockingChecks() {
+        dockingChecksActive = true;
+        console.log('Docking checks started');
+    }
+    
+    /**
+     * Stop docking checks
+     */
+    function stopDockingChecks() {
+        dockingChecksActive = false;
+        console.log('Docking checks stopped');
     }
     
     // Public methods
@@ -821,181 +976,9 @@ const DockingSystem = (function() {
             return dockingCamera;
         },
         initiateDocking: initiateDocking,
-        exitDocking: function() {
-            if (!isDocked || !currentPlanet) return;
-            
-            console.log(`Exiting docking with ${currentPlanet.userData.name}`);
-            
-            try {
-                // Log undocking
-                if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logEvent) {
-                    LoggingSystem.logEvent('undocking_initiated', {
-                        planet: currentPlanet.userData.name,
-                        time: Date.now()
-                    });
-                }
-                
-                // Show notification
-                if (typeof HudManager !== 'undefined' && HudManager.showNotification) {
-                    HudManager.showNotification(`Undocking from ${currentPlanet.userData.name}`);
-                    HudManager.showAIMessage('Undocking sequence initiated. Returning to normal flight controls.');
-                }
-                
-                // Hide planet info panel
-                if (planetInfoPanel) {
-                    planetInfoPanel.classList.add('hidden');
-                    planetInfoPanel.style.display = 'none';
-                }
-                
-                // Move the rocket slightly away from the planet to prevent immediate re-docking
-                if (typeof RocketControls !== 'undefined') {
-                    const rocketPosition = RocketControls.getPosition();
-                    const planetPosition = currentPlanet.position.clone();
-                    
-                    // Direction from planet to rocket
-                    const direction = new THREE.Vector3()
-                        .subVectors(rocketPosition, planetPosition)
-                        .normalize();
-                    
-                    // Calculate undock position (move further away from planet)
-                    const undockPosition = rocketPosition.clone().add(
-                        direction.multiplyScalar(2.0)
-                    );
-                    
-                    // Get rocket object and update position
-                    const rocket = RocketControls.getRocketObject();
-                    if (rocket) {
-                        rocket.position.copy(undockPosition);
-                    }
-                }
-                
-                // Animate camera transition back to rocket view
-                if (renderer && mainCamera && dockingCamera) {
-                    const startTime = performance.now();
-                    const transitionDuration = 1000; // 1 second transition
-                    
-                    // Store initial camera state
-                    const initialCameraPosition = dockingCamera.position.clone();
-                    const initialCameraQuaternion = dockingCamera.quaternion.clone();
-                    
-                    // Get rocket for target position
-                    const rocket = RocketControls.getRocketObject();
-                    if (rocket) {
-                        const targetPosition = new THREE.Vector3();
-                        rocket.getWorldPosition(targetPosition);
-                        
-                        // Calculate target camera position (behind and slightly above rocket)
-                        const rocketDirection = new THREE.Vector3(0, 0, -1);
-                        rocketDirection.applyQuaternion(rocket.quaternion);
-                        const targetCameraPosition = targetPosition.clone().add(
-                            rocketDirection.multiplyScalar(10)
-                        ).add(new THREE.Vector3(0, 2, 0));
-                        
-                        function animateCameraTransition(currentTime) {
-                            const elapsed = currentTime - startTime;
-                            const progress = Math.min(elapsed / transitionDuration, 1);
-                            
-                            // Use smooth easing
-                            const easedProgress = easeInOutCubic(progress);
-                            
-                            // Interpolate camera position
-                            mainCamera.position.lerpVectors(initialCameraPosition, targetCameraPosition, easedProgress);
-                            
-                            // Look at rocket
-                            mainCamera.lookAt(targetPosition);
-                            
-                            if (progress < 1) {
-                                requestAnimationFrame(animateCameraTransition);
-                            } else {
-                                // Transition complete
-                                console.log('Camera transition complete');
-                            }
-                        }
-                        
-                        requestAnimationFrame(animateCameraTransition);
-                    }
-                }
-                
-                // Re-enable rocket controls
-                if (typeof RocketControls !== 'undefined' && RocketControls.setEnabled) {
-                    RocketControls.setEnabled(true);
-                }
-                
-                // Re-enable input system
-                if (typeof InputManager !== 'undefined' && InputManager.setEnabled) {
-                    InputManager.setEnabled(true);
-                }
-                
-                // Log undocking complete
-                if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logEvent) {
-                    LoggingSystem.logEvent('undocking_completed', {
-                        planet: currentPlanet.userData.name,
-                        time: Date.now()
-                    });
-                }
-                
-                // Reset docking state
-                isDocked = false;
-                const previousPlanet = currentPlanet;
-                currentPlanet = null;
-                
-                // Show temporary message after undocking
-                setTimeout(() => {
-                    if (typeof HudManager !== 'undefined' && HudManager.showNotification) {
-                        HudManager.showNotification(`Departed from ${previousPlanet.userData.name}`);
-                    }
-                }, 2000);
-                
-            } catch (error) {
-                console.error('Error exiting docking:', error);
-                
-                // Log error
-                if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logError) {
-                    LoggingSystem.logError('Undocking failed', error);
-                }
-                
-                // Show error notification
-                if (typeof HudManager !== 'undefined' && HudManager.showNotification) {
-                    HudManager.showNotification('Undocking failed - system error', 'error');
-                }
-                
-                // Force reset docking state in case of error
-                isDocked = false;
-                currentPlanet = null;
-                
-                // Force re-enable controls in case of error
-                if (typeof RocketControls !== 'undefined' && RocketControls.setEnabled) {
-                    RocketControls.setEnabled(true);
-                }
-                
-                if (typeof InputManager !== 'undefined' && InputManager.setEnabled) {
-                    InputManager.setEnabled(true);
-                }
-                
-                // Hide planet info panel
-                if (planetInfoPanel) {
-                    planetInfoPanel.classList.add('hidden');
-                    planetInfoPanel.style.display = 'none';
-                }
-            }
-        },
-        toggleDebugSpheres: function() {
-            showDebugSpheres = !showDebugSpheres;
-            
-            debugSpheres.forEach(debugObj => {
-                if (debugObj.sphere) {
-                    debugObj.sphere.visible = showDebugSpheres;
-                }
-            });
-            
-            return showDebugSpheres;
-        },
-        getDebugSpheres: function() {
-            return debugSpheres;
-        },
-        areDebugSpheresVisible: function() {
-            return showDebugSpheres;
-        }
+        exitDocking: exitDocking,
+        startDockingChecks: startDockingChecks,
+        stopDockingChecks: stopDockingChecks
     };
 })();
 

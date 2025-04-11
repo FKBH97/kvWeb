@@ -301,31 +301,35 @@ const HudManager = (function() {
         },
         
         /**
-         * Show or hide the docking prompt
-         * @param {boolean} show - Whether to show the prompt
-         * @param {string} planetName - Name of the planet to dock with (optional)
+         * Update the docking prompt based on proximity to a planet
+         * @param {boolean} canDock - Whether docking is possible
+         * @param {string} planetName - Name of the planet
          */
-        updateDockingPrompt: function(show, planetName) {
-            if (!dockingPrompt) return;
-            
-            if (show) {
-                dockingPrompt.classList.remove('hidden');
+        updateDockingPrompt: function(canDock, planetName) {
+            if (!dockingPrompt) {
+                console.warn('Docking prompt element not found');
+                return;
+            }
+
+            if (canDock) {
+                dockingPrompt.textContent = `Press SPACE to dock with ${planetName}`;
+                dockingPrompt.style.display = 'block';
+                dockingPrompt.style.opacity = '1';
                 
-                // If planet name is provided, include it in the prompt
-                const dockingText = document.getElementById('docking-text');
-                if (dockingText && planetName) {
-                    dockingText.textContent = `PRESS SPACE TO DOCK WITH ${planetName.toUpperCase()}`;
-                } else if (dockingText) {
-                    dockingText.textContent = 'PRESS SPACE TO DOCK';
+                // Add a subtle pulse animation
+                dockingPrompt.style.animation = 'pulse 2s infinite';
+                
+                // Log the docking prompt
+                if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logEvent) {
+                    LoggingSystem.logEvent('docking_prompt_shown', {
+                        planet: planetName,
+                        timestamp: new Date().toISOString()
+                    });
                 }
-                
-                // Show a notification
-                this.showNotification(`${planetName || 'Planet'} docking available`);
-                
-                // Show an AI message
-                displayAIMessage(`We're in range to dock with ${planetName || 'the planet'}. Press SPACE to initiate docking sequence.`);
             } else {
-                dockingPrompt.classList.add('hidden');
+                dockingPrompt.style.display = 'none';
+                dockingPrompt.style.opacity = '0';
+                dockingPrompt.style.animation = 'none';
             }
         },
         

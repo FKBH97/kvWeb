@@ -14,8 +14,6 @@ const PlanetSetup = (function() {
     let orbitLines = []; // Store orbit visualization lines
     let showOrbits = false; // Toggle for orbit visualization
     let timeElapsed = 0; // Track elapsed time for animations
-    let debugSpheres = []; // Store debug visualization spheres
-    let showDebugSpheres = true; // Toggle for debug visualization
 
     // Hardcoded texture paths for each planet and texture type
     const planetTexturePaths = {
@@ -103,7 +101,7 @@ const PlanetSetup = (function() {
         {
             name: "mercury",
             radius: 16,
-            distance: 50,  // Reduced from 200
+            distance: 150,  // Reduced from 200
             rotationSpeed: 0.0005,
             orbitSpeed: 0.0008,
             axialTilt: 0.03,
@@ -114,7 +112,7 @@ const PlanetSetup = (function() {
         {
             name: "venus",
             radius: 30,
-            distance: 80,  // Reduced from 320
+            distance: 277,  // Reduced from 320
             rotationSpeed: 0.0002,
             orbitSpeed: 0.0006,
             axialTilt: 0.01,
@@ -125,7 +123,7 @@ const PlanetSetup = (function() {
         {
             name: "earth",
             radius: 32,
-            distance: 110,  // Reduced from 450
+            distance: 385,  // Reduced from 450
             hasAtmosphere: true,
             atmosphereColor: 0x7098DA,
             atmosphereOpacity: 0.2,
@@ -149,7 +147,7 @@ const PlanetSetup = (function() {
         {
             name: "mars",
             radius: 24,
-            distance: 150,  // Reduced from 600
+            distance: 585,  // Reduced from 600
             rotationSpeed: 0.0007,
             orbitSpeed: 0.0004,
             axialTilt: 0.44,
@@ -177,7 +175,7 @@ const PlanetSetup = (function() {
         {
             name: "jupiter",
             radius: 100,
-            distance: 200,  // Reduced from 850
+            distance: 2000,  // Reduced from 850
             rotationSpeed: 0.001,
             orbitSpeed: 0.0002,
             axialTilt: 0.05,
@@ -188,7 +186,7 @@ const PlanetSetup = (function() {
         {
             name: "saturn",
             radius: 80,
-            distance: 300,  // Reduced from 1150
+            distance: 3682,  // Reduced from 1150
             rotationSpeed: 0.0009,
             orbitSpeed: 0.00015,
             axialTilt: 0.47,
@@ -200,7 +198,7 @@ const PlanetSetup = (function() {
         {
             name: "uranus",
             radius: 50,    // Doubled from 2.5
-            distance: 1400, // Increased from 100
+            distance: 7398, // Increased from 100
             rotationSpeed: 0.0008,
             orbitSpeed: 0.0001,
             axialTilt: 1.71, // Uranus has an extreme axial tilt
@@ -212,7 +210,7 @@ const PlanetSetup = (function() {
         {
             name: "neptune",
             radius: 46,  // Doubled from 2.3
-            distance: 1650, // Increased from 115
+            distance: 11561, // Increased from 115
             rotationSpeed: 0.0008,
             orbitSpeed: 0.00008,
             axialTilt: 0.49,
@@ -235,12 +233,10 @@ const PlanetSetup = (function() {
                 textureLoader = new THREE.TextureLoader();
             }
             
-            console.log(`Attempting to load texture: ${path}`);
-            
             const texture = textureLoader.load(
                 path,
                 function(loadedTexture) {
-                    console.log(`Successfully loaded texture: ${path}`);
+                    // Success callback
                 },
                 function(xhr) {
                     // Progress callback
@@ -345,7 +341,9 @@ const PlanetSetup = (function() {
             orbitSpeed: planetData.orbitSpeed,
             rotationSpeed: planetData.rotationSpeed,
             axialTilt: planetData.axialTilt,
-            moons: []
+            moons: [],
+            spaceStations: [], // Add space stations array
+            id: Math.random().toString(36).substr(2, 9) // Add unique ID for docking system
         };
         
         // Apply axial tilt
@@ -648,132 +646,109 @@ const PlanetSetup = (function() {
      */
     function createMoon(moonData, planet) {
         if (moonData.isModel) {
-            // For Phobos and Deimos
-            const modelPath = moonModelPaths[moonData.name];
-            
-            if (modelPath) {
-                // Try to load the model
+            // Load 3D model for the moon
+            if (typeof THREE.OBJLoader !== 'undefined') {
                 const loader = new THREE.OBJLoader();
+                const modelPath = moonModelPaths[moonData.name];
                 
-                loader.load(
-                    modelPath,
-                    function(object) {
-                        // Scale model appropriately
-                        object.scale.set(moonData.radius, moonData.radius, moonData.radius);
-                        
-                        // Add moon data to the object
-                        object.userData = {
-                            name: moonData.name,
-                            orbitDistance: moonData.distance,
-                            orbitSpeed: moonData.orbitSpeed,
-                            rotationSpeed: moonData.rotationSpeed,
-                            parent: planet
-                        };
-                        
-                        // Set initial position
-                        object.position.set(moonData.distance, 0, 0);
-                        
-                        // Create a pivot for orbit
-                        const pivot = new THREE.Object3D();
-                        planet.add(pivot);
-                        pivot.add(object);
-                        
-                        // Store reference to the moon
-                        moons.push({
-                            moon: object,
-                            pivot: pivot,
-                            data: moonData
-                        });
-                        
-                        planet.userData.moons.push({
-                            moon: object,
-                            pivot: pivot
-                        });
-                    },
-                    function(xhr) {
-                        // Progress callback
-                        console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-                    },
-                    function(error) {
-                        console.error(`Error loading moon model: ${moonData.name}`, error);
-                        // Fall back to simple sphere
-                        createSimpleMoon(moonData, planet);
-                    }
-                );
+                if (modelPath) {
+                    loader.load(
+                        modelPath,
+                        function(object) {
+                            // Scale the model to match the moon's radius
+                            const scale = moonData.radius / 10; // Adjust based on model size
+                            object.scale.set(scale, scale, scale);
+                            
+                            // Add moon data to the object
+                            object.userData = {
+                                name: moonData.name,
+                                orbitDistance: moonData.distance,
+                                orbitSpeed: moonData.orbitSpeed,
+                                rotationSpeed: moonData.rotationSpeed,
+                                parent: planet
+                            };
+                            
+                            // Set initial position
+                            object.position.set(moonData.distance, 0, 0);
+                            
+                            // Create a pivot for orbit
+                            const pivot = new THREE.Object3D();
+                            planet.add(pivot);
+                            pivot.add(object);
+                            
+                            // Store reference to the moon
+                            moons.push({
+                                moon: object,
+                                pivot: pivot,
+                                data: moonData
+                            });
+                            
+                            planet.userData.moons.push({
+                                moon: object,
+                                pivot: pivot
+                            });
+                        },
+                        undefined,
+                        function(error) {
+                            console.error(`Error loading moon model ${moonData.name}:`, error);
+                            createSimpleMoon(moonData, planet);
+                        }
+                    );
+                } else {
+                    console.warn(`No model path found for moon ${moonData.name}, using simple sphere`);
+                    createSimpleMoon(moonData, planet);
+                }
             } else {
-                // Fall back to simple sphere
+                console.warn('OBJLoader not available, using simple sphere for moon');
                 createSimpleMoon(moonData, planet);
             }
         } else {
-            // For Luna
-            createTexturedMoon(moonData, planet);
-        }
-    }
-    
-    /**
-     * Create a textured moon (Luna)
-     * @param {Object} moonData - Data for the moon
-     * @param {Object} planet - The parent planet
-     */
-    function createTexturedMoon(moonData, planet) {
-        const geometry = new THREE.SphereGeometry(
-            moonData.radius, 
-            16, // Less detail for moons
-            16
-        );
-        
-        // Try to load moon texture
-        const texturePaths = planetTexturePaths[moonData.name];
-        let material;
-        
-        if (texturePaths && texturePaths.map) {
-            const texture = loadTexture(texturePaths.map);
+            // Create a simple sphere for the moon
+            const geometry = new THREE.SphereGeometry(
+                moonData.radius, 
+                16, // Less detail for moons
+                16
+            );
             
-            if (texture) {
-                material = new THREE.MeshBasicMaterial({
-                    map: texture
-                });
-            } else {
-                material = new THREE.MeshBasicMaterial({
-                    color: getPlanetColor(moonData.name)
-                });
-            }
-        } else {
-            material = new THREE.MeshBasicMaterial({
-                color: getPlanetColor(moonData.name)
+            // Try to load moon texture
+            const moonTexture = loadTexture(planetTexturePaths[moonData.name]?.map);
+            
+            // Create material
+            const material = moonTexture ? 
+                new THREE.MeshBasicMaterial({ map: moonTexture }) :
+                new THREE.MeshBasicMaterial({ color: getPlanetColor(moonData.name) });
+            
+            const moon = new THREE.Mesh(geometry, material);
+            
+            // Add moon data to the mesh
+            moon.userData = {
+                name: moonData.name,
+                orbitDistance: moonData.distance,
+                orbitSpeed: moonData.orbitSpeed,
+                rotationSpeed: moonData.rotationSpeed,
+                parent: planet
+            };
+            
+            // Set initial position
+            moon.position.set(moonData.distance, 0, 0);
+            
+            // Create a pivot for orbit
+            const pivot = new THREE.Object3D();
+            planet.add(pivot);
+            pivot.add(moon);
+            
+            // Store reference to the moon
+            moons.push({
+                moon: moon,
+                pivot: pivot,
+                data: moonData
+            });
+            
+            planet.userData.moons.push({
+                moon: moon,
+                pivot: pivot
             });
         }
-        
-        const moon = new THREE.Mesh(geometry, material);
-        
-        // Add moon data to the mesh
-        moon.userData = {
-            name: moonData.name,
-            orbitDistance: moonData.distance,
-            orbitSpeed: moonData.orbitSpeed,
-            rotationSpeed: moonData.rotationSpeed,
-            parent: planet
-        };
-        
-        // Set initial position
-        moon.position.set(moonData.distance, 0, 0);
-        
-        // Create a pivot for orbit
-        const pivot = new THREE.Object3D();
-        planet.add(pivot);
-        pivot.add(moon);
-        
-        // Store reference to the moon
-        moons.push({
-            moon: moon,
-            pivot: pivot,
-            data: moonData
-        });
-        
-        planet.userData.moons.push({
-            moon: moon,
-            pivot: pivot
-        });
     }
     
     /**
@@ -887,12 +862,7 @@ const PlanetSetup = (function() {
                         const spaceStation = gltf.scene;
                         setupSpaceStation(spaceStation, planetData, pivot, orbitDistance, orbitHeight, orbitSpeed);
                     },
-                    function(xhr) {
-                        if (xhr.lengthComputable) {
-                            const percentComplete = xhr.loaded / xhr.total * 100;
-                            console.log(`${planetData.name} station: ${Math.round(percentComplete)}% loaded`);
-                        }
-                    },
+                    undefined,
                     function(error) {
                         console.warn(`Using fallback station for ${planetData.name} due to loading error:`, error);
                         const fallbackStation = createFallbackSpaceStation(planetData, pivot);
@@ -950,37 +920,6 @@ const PlanetSetup = (function() {
             station: station,
             orbitSpeed: orbitSpeed
         });
-        
-        console.log(`Space station added to ${planetData.name}`);
-    }
-    
-    /**
-     * Create a debug sphere to visualize planet positions
-     * @param {Object} planetData - Data for the planet
-     * @param {Object} planet - The planet mesh
-     * @returns {Object} The debug sphere mesh
-     */
-    function createDebugSphere(planetData, planet) {
-        // Create a small sphere for debugging
-        const geometry = new THREE.SphereGeometry(5, 16, 16);
-        
-        // Create a bright colored material
-        const material = new THREE.MeshBasicMaterial({
-            color: getPlanetColor(planetData.name),
-            transparent: true,
-            opacity: 0.8
-        });
-        
-        const sphere = new THREE.Mesh(geometry, material);
-        sphere.name = `${planetData.name}DebugSphere`;
-        
-        // Add to debug spheres array
-        debugSpheres.push({
-            sphere: sphere,
-            name: planetData.name
-        });
-        
-        return sphere;
     }
     
     // Public methods
@@ -999,7 +938,6 @@ const PlanetSetup = (function() {
             planets = [];
             moons = [];
             orbitLines = [];
-            debugSpheres = [];
             textureLoader = new THREE.TextureLoader();
             
             // Create orbit group to hold all planets and their orbits
@@ -1047,10 +985,6 @@ const PlanetSetup = (function() {
                     data: planetData
                 });
                 
-                // Create debug sphere for this planet
-                const debugSphere = createDebugSphere(planetData, planet);
-                planetPivot.add(debugSphere);
-                
                 // Add rings if the planet has them
                 if (planetData.hasRings) {
                     const rings = createRingSystem(planet, planetData);
@@ -1073,7 +1007,6 @@ const PlanetSetup = (function() {
                 createSpaceStation(planetData, planet);
             });
             
-            console.log('Planetary system initialized with', planets.length, 'planets');
             return planets;
         },
         
@@ -1112,17 +1045,6 @@ const PlanetSetup = (function() {
                             station.rotation.z = Math.sin(timeElapsed * 0.5) * 0.03;
                         }
                     });
-                }
-                
-                // Update debug sphere position if it exists
-                const debugSphere = debugSpheres.find(ds => ds.name === data.name);
-                if (debugSphere && debugSphere.sphere) {
-                    // Get the world position of the planet
-                    const worldPosition = new THREE.Vector3();
-                    planet.getWorldPosition(worldPosition);
-                    
-                    // Update the debug sphere's position to match the planet exactly
-                    debugSphere.sphere.position.copy(worldPosition);
                 }
             });
             
@@ -1196,36 +1118,55 @@ const PlanetSetup = (function() {
         areOrbitLinesVisible: function() {
             return showOrbits;
         },
-        
+
         /**
-         * Toggle debug sphere visibility
+         * Get the nearest planet to a position
+         * @param {THREE.Vector3} position - The position to check from
+         * @returns {Object} The nearest planet object and distance
          */
-        toggleDebugSpheres: function() {
-            showDebugSpheres = !showDebugSpheres;
+        getNearestPlanet: function(position) {
+            let nearestPlanet = null;
+            let nearestDistance = Infinity;
             
-            debugSpheres.forEach(debugObj => {
-                debugObj.sphere.visible = showDebugSpheres;
+            planets.forEach(planetObj => {
+                if (!planetObj.planet) return;
+                
+                const planet = planetObj.planet;
+                const planetPosition = new THREE.Vector3();
+                
+                // Get planet position - handle both cases where getWorldPosition exists or not
+                if (typeof planet.getWorldPosition === 'function') {
+                    planet.getWorldPosition(planetPosition);
+                } else if (planet.position) {
+                    planetPosition.copy(planet.position);
+                } else {
+                    console.warn('Planet has no position property or getWorldPosition method');
+                    return;
+                }
+                
+                const distance = planetPosition.distanceTo(position);
+                
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearestPlanet = planet;
+                }
             });
             
-            return showDebugSpheres;
+            return {
+                planet: nearestPlanet,
+                distance: nearestDistance
+            };
         },
-        
-        /**
-         * Get the debug spheres
-         * @returns {Array} The debug sphere objects
-         */
-        getDebugSpheres: function() {
-            return debugSpheres;
-        },
-        
-        /**
-         * Check if debug spheres are visible
-         * @returns {boolean} True if debug spheres are visible
-         */
-        areDebugSpheresVisible: function() {
-            return showDebugSpheres;
-        }
 
+        /**
+         * Get all space stations for a planet
+         * @param {Object} planet - The planet to get stations for
+         * @returns {Array} Array of space station objects
+         */
+        getSpaceStations: function(planet) {
+            if (!planet || !planet.userData) return [];
+            return planet.userData.spaceStations || [];
+        }
     };
 
 })();

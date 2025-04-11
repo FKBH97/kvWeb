@@ -29,10 +29,10 @@ async function init() {
       DebugMode.log('Starting initialization sequence');
     }
     
-    // Initialize the Three.js scene
+    // Initialize the Three.js scene with orbit controls disabled
     scene = SceneSetup.initializeScene('scene-container', {
       cameraPosition: { x: 0, y: 30, z: 90 },
-      enableOrbitControls: true
+      enableOrbitControls: false  // Disable orbit controls
     });
     
     camera = SceneSetup.getCamera();
@@ -86,7 +86,7 @@ async function init() {
       createPlaceholderSun();
     }
     
-    // Initialize planets
+    // Initialize planets first
     if (typeof PlanetSetup !== 'undefined') {
       await PlanetSetup.init(scene);
       console.log('Planets initialized');
@@ -95,15 +95,20 @@ async function init() {
       showErrorMessage('Failed to initialize planets - PlanetSetup not found');
     }
     
-    // Initialize rocket navigation system
-    await initRocketSystem();
+    // Initialize rocket controls
+    if (typeof RocketControls !== 'undefined') {
+      await RocketControls.init(scene, camera);
+      rocketInitialized = true;
+      console.log('Rocket controls initialized');
+    }
     
     // Initialize docking system
     if (typeof DockingSystem !== 'undefined') {
       DockingSystem.init(scene, camera, renderer);
-      console.log('Docking System initialized');
-    } else {
-      console.warn('DockingSystem not available - docking with planets will be disabled');
+      console.log('Docking system initialized');
+      
+      // Docking checks are already started in the init function
+      // No need to call startDockingChecks() separately
     }
     
     // Initialize FTL system
@@ -199,55 +204,6 @@ function createPlaceholderSun() {
 }
 
 /**
- * Initialize the rocket navigation system
- */
-async function initRocketSystem() {
-  console.log('Initializing rocket navigation system...');
-  
-  try {
-    // Skip if rocket controls are not available
-    if (typeof RocketControls === 'undefined') {
-      console.warn('RocketControls not available - rocket navigation will be disabled');
-      return;
-    }
-    
-    // Initialize rocket controls with scene and camera
-    await RocketControls.init(scene, camera);
-    console.log('Rocket controls initialized');
-    
-    // Register docking key (space) handling
-    if (typeof InputManager !== 'undefined' && typeof DockingSystem !== 'undefined') {
-      InputManager.registerKeyListener(' ', function(isPressed) {
-        const dockingPrompt = document.getElementById('docking-prompt');
-        if (isPressed && dockingPrompt && !dockingPrompt.classList.contains('hidden')) {
-          DockingSystem.initiateDocking();
-        }
-      });
-    }
-    
-    // Set up logging for boost activation if LoggingSystem exists
-    if (typeof LoggingSystem !== 'undefined') {
-      LoggingSystem.logEvent('rocket_initialized', {
-        position: RocketControls.getPosition()
-      });
-    }
-    
-    rocketInitialized = true;
-    
-    console.log('Rocket system initialized successfully');
-  } catch (error) {
-    console.error('Error initializing rocket system:', error);
-    
-    // Show error notification
-    showErrorMessage('Failed to initialize rocket system. Some navigation features may be disabled.');
-    
-    if (typeof DebugMode !== 'undefined') {
-      DebugMode.logError('Rocket initialization failed', error);
-    }
-  }
-}
-
-/**
  * Main animation loop
  */
 function animate() {
@@ -276,16 +232,12 @@ function animate() {
     
     // Update docking system
     if (typeof DockingSystem !== 'undefined') {
-      // Get the rocket and planets for docking checks
-      const rocket = typeof RocketControls !== 'undefined' ? RocketControls.getRocketObject() : null;
-      const planets = typeof PlanetSetup !== 'undefined' ? PlanetSetup.getPlanets() : [];
-      
-      // Update docking system with current rocket and planets
+      // Update docking system
       DockingSystem.update();
       
-      // Check docking proximity
-      if (rocket && planets.length > 0) {
-        DockingSystem.checkDockingProximity(rocket, planets);
+      // Check docking proximity if not already docked
+      if (!DockingSystem.isDocked() && typeof RocketControls !== 'undefined') {
+        RocketControls.checkNearbyPlanets();
       }
       
       // Use docking camera if docked, otherwise use main camera
@@ -308,6 +260,7 @@ function animate() {
     requestAnimationFrame(animate);
   } catch (error) {
     console.error('Error in animation loop:', error);
+    showErrorMessage('An error occurred in the animation loop. The application may be unstable.');
   }
 }
 
