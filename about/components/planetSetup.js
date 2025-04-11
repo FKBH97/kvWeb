@@ -14,6 +14,8 @@ const PlanetSetup = (function() {
     let orbitLines = []; // Store orbit visualization lines
     let showOrbits = false; // Toggle for orbit visualization
     let timeElapsed = 0; // Track elapsed time for animations
+    let debugSpheres = []; // Store debug visualization spheres
+    let showDebugSpheres = true; // Toggle for debug visualization
 
     // Hardcoded texture paths for each planet and texture type
     const planetTexturePaths = {
@@ -100,30 +102,30 @@ const PlanetSetup = (function() {
     const planetaryData = [
         {
             name: "mercury",
-            radius: 16,  // Doubled from 0.8
-            distance: 200, // Increased distance to maintain spacing
+            radius: 16,
+            distance: 50,  // Reduced from 200
             rotationSpeed: 0.0005,
             orbitSpeed: 0.0008,
             axialTilt: 0.03,
-            orbitalInclination: 12.23, // 7.01° in radians
+            orbitalInclination: 12.23,
             hasRings: false,
             moons: []
         },
         {
             name: "venus",
-            radius: 30,  // Doubled from 1.5
-            distance: 320, // Increased from 22
+            radius: 30,
+            distance: 80,  // Reduced from 320
             rotationSpeed: 0.0002,
             orbitSpeed: 0.0006,
             axialTilt: 0.01,
-            orbitalInclination: 5.92, // 3.39° in radians
+            orbitalInclination: 5.92,
             hasRings: false,
             moons: []
         },
         {
             name: "earth",
-            radius: 32,  // Doubled from 1.6
-            distance: 450, // Increased from 30
+            radius: 32,
+            distance: 110,  // Reduced from 450
             hasAtmosphere: true,
             atmosphereColor: 0x7098DA,
             atmosphereOpacity: 0.2,
@@ -131,13 +133,13 @@ const PlanetSetup = (function() {
             rotationSpeed: 0.0007,
             orbitSpeed: 0.0005,
             axialTilt: 0.41,
-            orbitalInclination: 0.0, // 0° (reference plane)
+            orbitalInclination: 0.0,
             hasRings: false,
             moons: [
                 {
                     name: "luna",
-                    radius: 8,  // Doubled from 0.4
-                    distance: 50,   // Increased from 3
+                    radius: 8,
+                    distance: 50,
                     rotationSpeed: 0.008,
                     orbitSpeed: 0.015,
                     isModel: false
@@ -146,17 +148,17 @@ const PlanetSetup = (function() {
         },
         {
             name: "mars",
-            radius: 24,  // Doubled from 1.2
-            distance: 600, // Increased from 38
+            radius: 24,
+            distance: 150,  // Reduced from 600
             rotationSpeed: 0.0007,
             orbitSpeed: 0.0004,
             axialTilt: 0.44,
-            orbitalInclination: 3.23, // 1.85° in radians
+            orbitalInclination: 3.23,
             hasRings: false,
             moons: [
                 {
                     name: "phobos",
-                    radius: 0.04, // Doubled
+                    radius: 0.04,
                     distance: 30,
                     rotationSpeed: 0.01,
                     orbitSpeed: 0.02,
@@ -164,7 +166,7 @@ const PlanetSetup = (function() {
                 },
                 {
                     name: "deimos",
-                    radius: 0.03, // Doubled
+                    radius: 0.03,
                     distance: 40,
                     rotationSpeed: 0.008,
                     orbitSpeed: 0.015,
@@ -174,25 +176,25 @@ const PlanetSetup = (function() {
         },
         {
             name: "jupiter",
-            radius: 100,   // Doubled from 5
-            distance: 850, // Increased from 60
+            radius: 100,
+            distance: 200,  // Reduced from 850
             rotationSpeed: 0.001,
             orbitSpeed: 0.0002,
             axialTilt: 0.05,
-            orbitalInclination: 2.29, // 1.31° in radians
+            orbitalInclination: 2.29,
             hasRings: false,
             moons: []
         },
         {
             name: "saturn",
-            radius: 80,    // Doubled from 4
-            distance: 1150, // Increased from 80
+            radius: 80,
+            distance: 300,  // Reduced from 1150
             rotationSpeed: 0.0009,
             orbitSpeed: 0.00015,
             axialTilt: 0.47,
-            orbitalInclination: 4.35, // 2.49° in radians
+            orbitalInclination: 4.35,
             hasRings: true,
-            ringSize: 2.5, // Multiplier relative to planet radius
+            ringSize: 2.5,
             moons: []
         },
         {
@@ -952,6 +954,35 @@ const PlanetSetup = (function() {
         console.log(`Space station added to ${planetData.name}`);
     }
     
+    /**
+     * Create a debug sphere to visualize planet positions
+     * @param {Object} planetData - Data for the planet
+     * @param {Object} planet - The planet mesh
+     * @returns {Object} The debug sphere mesh
+     */
+    function createDebugSphere(planetData, planet) {
+        // Create a small sphere for debugging
+        const geometry = new THREE.SphereGeometry(5, 16, 16);
+        
+        // Create a bright colored material
+        const material = new THREE.MeshBasicMaterial({
+            color: getPlanetColor(planetData.name),
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        const sphere = new THREE.Mesh(geometry, material);
+        sphere.name = `${planetData.name}DebugSphere`;
+        
+        // Add to debug spheres array
+        debugSpheres.push({
+            sphere: sphere,
+            name: planetData.name
+        });
+        
+        return sphere;
+    }
+    
     // Public methods
     return {
         /**
@@ -968,6 +999,7 @@ const PlanetSetup = (function() {
             planets = [];
             moons = [];
             orbitLines = [];
+            debugSpheres = [];
             textureLoader = new THREE.TextureLoader();
             
             // Create orbit group to hold all planets and their orbits
@@ -1014,6 +1046,10 @@ const PlanetSetup = (function() {
                     pivot: planetPivot,
                     data: planetData
                 });
+                
+                // Create debug sphere for this planet
+                const debugSphere = createDebugSphere(planetData, planet);
+                planetPivot.add(debugSphere);
                 
                 // Add rings if the planet has them
                 if (planetData.hasRings) {
@@ -1076,6 +1112,17 @@ const PlanetSetup = (function() {
                             station.rotation.z = Math.sin(timeElapsed * 0.5) * 0.03;
                         }
                     });
+                }
+                
+                // Update debug sphere position if it exists
+                const debugSphere = debugSpheres.find(ds => ds.name === data.name);
+                if (debugSphere && debugSphere.sphere) {
+                    // Get the world position of the planet
+                    const worldPosition = new THREE.Vector3();
+                    planet.getWorldPosition(worldPosition);
+                    
+                    // Update the debug sphere's position to match the planet exactly
+                    debugSphere.sphere.position.copy(worldPosition);
                 }
             });
             
@@ -1148,6 +1195,35 @@ const PlanetSetup = (function() {
          */
         areOrbitLinesVisible: function() {
             return showOrbits;
+        },
+        
+        /**
+         * Toggle debug sphere visibility
+         */
+        toggleDebugSpheres: function() {
+            showDebugSpheres = !showDebugSpheres;
+            
+            debugSpheres.forEach(debugObj => {
+                debugObj.sphere.visible = showDebugSpheres;
+            });
+            
+            return showDebugSpheres;
+        },
+        
+        /**
+         * Get the debug spheres
+         * @returns {Array} The debug sphere objects
+         */
+        getDebugSpheres: function() {
+            return debugSpheres;
+        },
+        
+        /**
+         * Check if debug spheres are visible
+         * @returns {boolean} True if debug spheres are visible
+         */
+        areDebugSpheresVisible: function() {
+            return showDebugSpheres;
         }
 
     };

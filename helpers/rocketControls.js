@@ -43,6 +43,33 @@ const RocketControls = (function() {
     let modelLoader;
     
     /**
+     * Load the rocket model
+     * @returns {Promise} Resolves with the loaded model
+     */
+    function loadRocketModel() {
+        return new Promise((resolve, reject) => {
+            if (!modelLoader) {
+                modelLoader = new THREE.GLTFLoader();
+            }
+            
+            modelLoader.load(
+                '/sharedAssets/models/rocket.glb',
+                (gltf) => {
+                    const model = gltf.scene;
+                    model.scale.set(0.5, 0.5, 0.5); // Adjust scale as needed
+                    model.rotation.x = Math.PI / 2; // Rotate to face forward
+                    resolve(model);
+                },
+                undefined,
+                (error) => {
+                    console.error('Error loading rocket model:', error);
+                    reject(error);
+                }
+            );
+        });
+    }
+    
+    /**
      * Create a simple rocket model as fallback
      * @returns {Object} THREE.Object3D representing the rocket
      */
@@ -390,7 +417,6 @@ const RocketControls = (function() {
         if (!camera || !rocket) return;
         
         // STEP 1: Get the rocket's current movement direction
-        // If not moving, use its current rotation to guess direction
         let forwardDirection;
         
         if (velocity.length() > 0.01) {
@@ -403,12 +429,11 @@ const RocketControls = (function() {
         }
         
         // STEP 2: Force camera position BEHIND the rocket
-        // This is the key - we place the camera opposite to the movement direction
         const backwardDirection = forwardDirection.clone().negate();
         
         // Position camera behind and slightly above the rocket
-        const cameraDistance = 5; // Distance behind rocket
-        const cameraHeight = 1.5; // Height above rocket
+        const cameraDistance = 10; // Increased distance for better view
+        const cameraHeight = 3; // Increased height for better view
         
         const cameraPosition = position.clone()
             .add(backwardDirection.multiplyScalar(cameraDistance))
@@ -418,24 +443,55 @@ const RocketControls = (function() {
         camera.position.lerp(cameraPosition, 0.1);
         
         // STEP 4: Look at the rocket's position plus a bit of its forward direction
-        // This makes the camera look slightly ahead of the rocket
         const lookTarget = position.clone().add(
-            forwardDirection.clone().multiplyScalar(2)
+            forwardDirection.clone().multiplyScalar(5) // Increased look-ahead distance
         );
         
         camera.lookAt(lookTarget);
         
-        // STEP 5: Update FOV for speed effect (optional)
+        // STEP 5: Update FOV for speed effect
         if (boostActive) {
-            // Increase FOV when boosting for a sense of speed
-            const targetFOV = 80;
+            const targetFOV = 85; // Increased FOV for boost
             camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 0.05);
             camera.updateProjectionMatrix();
         } else {
-            // Normal FOV when not boosting
             const targetFOV = 75;
             camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 0.05);
             camera.updateProjectionMatrix();
+        }
+    }
+    
+    /**
+     * Initialize the rocket controls
+     * @param {Object} sceneInstance - The Three.js scene
+     * @param {Object} cameraInstance - The Three.js camera
+     */
+    async function init(sceneInstance, cameraInstance) {
+        scene = sceneInstance;
+        camera = cameraInstance;
+        
+        try {
+            // Try to load the rocket model
+            rocket = await loadRocketModel();
+        } catch (error) {
+            console.warn('Using fallback rocket model:', error);
+            rocket = createSimpleRocket();
+        }
+        
+        scene.add(rocket);
+        
+        // Add engine flame
+        addEngineFlame();
+        
+        // Set initial position
+        rocket.position.copy(position);
+        
+        // Log initialization if LoggingSystem is available
+        if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logEvent) {
+            LoggingSystem.logEvent('rocket_initialized', {
+                position: position,
+                time: Date.now()
+            });
         }
     }
     
@@ -447,106 +503,7 @@ const RocketControls = (function() {
          * @param {Object} cameraInstance - Three.js camera
          * @returns {Promise} Resolves when initialization is complete
          */
-        init: async function(sceneInstance, cameraInstance) {
-            if (!sceneInstance || !cameraInstance) {
-                console.error('Scene and camera are required for RocketControls.init()');
-                return Promise.reject('Missing required parameters');
-            }
-            
-            scene = sceneInstance;
-            camera = cameraInstance;
-            
-            // Check if InputManager is available
-            if (typeof InputManager === 'undefined') {
-                console.error('InputManager is required for RocketControls');
-                return Promise.reject('InputManager not found');
-            }
-            
-            try {
-                // Create a simple rocket model as a placeholder
-                rocket = createSimpleRocket();
-                
-                // Ensure the rocket starts with zero velocity and acceleration
-                velocity = new THREE.Vector3(0, 0, 0);
-                acceleration = new THREE.Vector3(0, 0, 0);
-                
-                // Initialize the position to a good starting point
-                this.resetPosition();
-                
-                // Add rocket to scene AFTER setting position
-                scene.add(rocket);
-                
-                console.log('Rocket initialized successfully with placeholder model');
-                
-                // Try to load the actual rocket model
-                modelLoader = new THREE.GLTFLoader();
-                
-                try {
-                    const loadedModel = await new Promise((resolve, reject) => {
-                        modelLoader.load(
-                            'assets/models/rocket.glb',
-                            resolve,
-                            (xhr) => {
-                                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-                            },
-                            (error) => {
-                                console.error('Error loading rocket model:', error);
-                                reject(error);
-                            }
-                        );
-                    });
-                    
-                    rocketModel = loadedModel.scene;
-                    
-                    // Replace placeholder with actual model
-                    scene.remove(rocket);
-                    rocket = rocketModel;
-                    
-                    // Position the model
-                    rocket.position.copy(position);
-                    
-                    // Use a completely different approach with lookAt and scale inversion
-                    // First, reset any rotation that might have been applied
-                    rocket.rotation.set(0, 0, 0);
-                    
-                    // Invert the model along the Z axis (flips front to back)
-                    rocket.scale.z = -1;
-                    
-                    // Make sure matrix auto-update is enabled
-                    rocket.matrixAutoUpdate = true;
-                    
-                    // Update the matrix
-                    rocket.updateMatrix();
-                    
-                    // Add to scene
-                    scene.add(rocket);
-                    
-                    // Add engine flame
-                    addEngineFlame();
-                    
-                    // Re-enable auto updating of the matrix for ongoing transformations
-                    rocket.matrixAutoUpdate = true;
-                    
-                    console.log('Rocket model transformed using matrix transformation');
-                    
-                } catch (modelError) {
-                    console.warn('Failed to load rocket model, using placeholder:', modelError);
-                }
-                
-                // Log successful initialization
-                if (typeof LoggingSystem !== 'undefined' && LoggingSystem.logEvent) {
-                    LoggingSystem.logEvent('rocket_initialized', {
-                        position: position,
-                        time: Date.now()
-                    });
-                }
-                
-                return Promise.resolve();
-            } catch (error) {
-                console.error('Error initializing rocket controls:', error);
-                return Promise.reject(error);
-            }
-        },
+        init: init,
         
         /**
          * Update rocket position and rotation based on input
@@ -718,7 +675,7 @@ const RocketControls = (function() {
                     HudManager.updateSpeed(currentSpeed);
                 }
                 
-                // Check if we're near a planet for docking
+                // Check for nearby planets and update docking proximity
                 this.checkNearbyPlanets();
                 
                 // Update camera to follow the rocket
@@ -854,40 +811,48 @@ const RocketControls = (function() {
         },
         
         /**
-         * Check if we're near any planets for docking
+         * Check for nearby planets and update docking proximity
          */
         checkNearbyPlanets: function() {
-            if (!planets || planets.length === 0 || !position) return;
+            if (!DockingSystem || typeof DockingSystem.checkDockingProximity !== 'function') {
+                console.warn('DockingSystem not available for proximity check');
+                return;
+            }
             
-            try {
-                // Skip if DockingSystem is not available
-                if (typeof DockingSystem === 'undefined' || !DockingSystem.checkDockingProximity) {
-                    return;
+            // Get current rocket position
+            const rocketPosition = this.getCurrentPosition();
+            
+            // Find the nearest planet
+            let nearestPlanet = null;
+            let nearestDistance = Infinity;
+            
+            for (const planetObj of planets) {
+                if (!planetObj.planet) continue;
+                
+                const planet = planetObj.planet;
+                
+                // Get the planet's world position
+                const planetPosition = new THREE.Vector3();
+                planet.getWorldPosition(planetPosition);
+                
+                // Calculate distance to planet
+                const distance = planetPosition.distanceTo(rocketPosition);
+                
+                // Update nearest planet if this one is closer
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearestPlanet = planet;
                 }
                 
-                // Find the nearest planet
-                let nearestPlanet = null;
-                let nearestDistance = Infinity;
-                
-                for (const planetObj of planets) {
-                    if (!planetObj.planet) continue;
-                    
-                    const planet = planetObj.planet;
-                    const planetPosition = planet.position.clone();
-                    const distance = planetPosition.distanceTo(position);
-                    
-                    if (distance < nearestDistance) {
-                        nearestDistance = distance;
-                        nearestPlanet = planet;
-                    }
+                // Log distances for debugging
+                if (distance < 1000) { // Only log when reasonably close
+                    console.log(`Distance to ${planet.userData.name}: ${distance.toFixed(2)}, position: (${planetPosition.x.toFixed(2)}, ${planetPosition.y.toFixed(2)}, ${planetPosition.z.toFixed(2)})`);
                 }
-                
-                // Check docking proximity if we found a planet
-                if (nearestPlanet) {
-                    DockingSystem.checkDockingProximity(nearestPlanet, nearestDistance);
-                }
-            } catch (error) {
-                console.error('Error checking nearby planets:', error);
+            }
+            
+            // If we found a nearest planet, check docking proximity
+            if (nearestPlanet) {
+                DockingSystem.checkDockingProximity(nearestPlanet, nearestDistance);
             }
         },
         
@@ -977,6 +942,14 @@ const RocketControls = (function() {
                 acceleration.set(0, 0, 0);
                 updateThrustEffects(false, false);
             }
+        },
+        
+        /**
+         * Get the rocket's current position
+         * @returns {THREE.Vector3} The rocket's position
+         */
+        getCurrentPosition: function() {
+            return position.clone();
         }
     };
 })();
