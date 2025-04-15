@@ -11,9 +11,9 @@ const SunSetup = (function() {
     let sunLight;
     
     // Constants
-    const SUN_RADIUS = 75;
-    const CORONA_RADIUS = 80;
-    const OUTER_CORONA_RADIUS = 85;
+    const SUN_RADIUS = 50;
+    const CORONA_RADIUS = 55;
+    const OUTER_CORONA_RADIUS = 60;
     
     return {
         /**

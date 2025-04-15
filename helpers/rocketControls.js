@@ -244,7 +244,7 @@ const RocketControls = (function() {
                             150; // Increased fallback radius
             
             // Use a larger collision distance for the sun (it's hotter!)
-            const sunCollisionDistance = sunRadius * 0.8; // Make collision distance relative to sun size
+            const sunCollisionDistance = sunRadius * 0.5; // Reduced from 0.8 to make collision box smaller
             
             const distance = sunPosition.distanceTo(newPosition);
             const minDistance = sunRadius + sunCollisionDistance;
@@ -432,7 +432,7 @@ const RocketControls = (function() {
             forwardDirection = velocity.clone().normalize();
         } else {
             // Default forward direction based on current orientation
-            forwardDirection = new THREE.Vector3(0, 0, 1); // Changed from -1 to 1
+            forwardDirection = new THREE.Vector3(0, 0, 1);
             forwardDirection.applyQuaternion(rocket.quaternion);
         }
         
@@ -440,30 +440,30 @@ const RocketControls = (function() {
         const backwardDirection = forwardDirection.clone().negate();
         
         // Position camera behind and slightly above the rocket
-        const cameraDistance = 15; // Increased from 10 for better view
-        const cameraHeight = 5;   // Increased from 3 for better view
+        const cameraDistance = 5; // Reduced from 8 for even closer view
+        const cameraHeight = 2;   // Reduced from 3 for better perspective
         
         const cameraPosition = position.clone()
             .add(backwardDirection.multiplyScalar(cameraDistance))
             .add(new THREE.Vector3(0, cameraHeight, 0));
         
         // STEP 3: Smoothly move camera to this position
-        camera.position.lerp(cameraPosition, 0.05); // Reduced from 0.1 for smoother movement
+        camera.position.lerp(cameraPosition, 0.1); // Keep responsive movement
         
         // STEP 4: Look at the rocket's position plus a bit of its forward direction
         const lookTarget = position.clone().add(
-            forwardDirection.clone().multiplyScalar(10) // Increased from 5 for better look-ahead
+            forwardDirection.clone().multiplyScalar(3) // Reduced from 5 for closer look-ahead
         );
         
         camera.lookAt(lookTarget);
         
         // STEP 5: Update FOV for speed effect
         if (boostActive) {
-            const targetFOV = 85;
+            const targetFOV = 65; // Reduced from 75 for less distortion
             camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 0.05);
             camera.updateProjectionMatrix();
         } else {
-            const targetFOV = 75;
+            const targetFOV = 55; // Reduced from 65 for better perspective
             camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 0.05);
             camera.updateProjectionMatrix();
         }
