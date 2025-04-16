@@ -623,18 +623,15 @@ const DockingSystem = (function() {
             return;
         }
         
-        // Get the station's world position and orientation
+        // Get the station's world position
         const stationPosition = new THREE.Vector3();
-        const stationQuaternion = new THREE.Quaternion();
         station.getWorldPosition(stationPosition);
-        station.getWorldQuaternion(stationQuaternion);
         
-        // Calculate position behind the station (relative to station's orientation)
-        // Use a fixed offset distance for consistent camera positioning
-        const cameraOffset = new THREE.Vector3(0, 0, -15); // Increased distance for better view
+        // Calculate direction from station to planet
+        const directionToPlanet = new THREE.Vector3().subVectors(planetPosition, stationPosition).normalize();
         
-        // Apply the station's orientation to the offset
-        cameraOffset.applyQuaternion(stationQuaternion);
+        // Calculate camera position behind the station relative to planet direction
+        const cameraOffset = new THREE.Vector3().copy(directionToPlanet).multiplyScalar(-40); // 40 units behind station
         
         // Apply camera tilt
         const tiltMatrix = new THREE.Matrix4();
@@ -644,7 +641,7 @@ const DockingSystem = (function() {
         // Apply tilt to the offset
         const tiltedOffset = cameraOffset.clone().applyMatrix4(tiltMatrix);
         
-        // Set camera position directly relative to station's current world position
+        // Set camera position relative to station
         dockingCamera.position.copy(stationPosition).add(tiltedOffset);
         
         // Make camera look at planet with slight offset for better perspective
@@ -655,7 +652,8 @@ const DockingSystem = (function() {
         console.log('Camera position updated:', {
             stationPos: stationPosition.toArray(),
             cameraPos: dockingCamera.position.toArray(),
-            planetPos: planetPosition.toArray()
+            planetPos: planetPosition.toArray(),
+            directionToPlanet: directionToPlanet.toArray()
         });
     }
     

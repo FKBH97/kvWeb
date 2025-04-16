@@ -175,10 +175,10 @@ const PlanetSetup = (function() {
         {
             name: "jupiter",
             radius: 100,
-            distance: 2000,  // Reduced from 850
+            distance: 1000,  // Reduced from 2000
             rotationSpeed: 0.001,
             orbitSpeed: 0.0002,
-            axialTilt: 0.05,
+            axialTilt: 0.5,
             orbitalInclination: 2.29,
             hasRings: false,
             moons: []
@@ -186,7 +186,7 @@ const PlanetSetup = (function() {
         {
             name: "saturn",
             radius: 80,
-            distance: 3682,  // Reduced from 1150
+            distance: 1500,  // Reduced from 3682
             rotationSpeed: 0.0009,
             orbitSpeed: 0.00015,
             axialTilt: 0.47,
@@ -197,24 +197,24 @@ const PlanetSetup = (function() {
         },
         {
             name: "uranus",
-            radius: 50,    // Doubled from 2.5
-            distance: 7398, // Increased from 100
+            radius: 50,
+            distance: 2000,  // Reduced from 7398
             rotationSpeed: 0.0008,
             orbitSpeed: 0.0001,
-            axialTilt: 1.71, // Uranus has an extreme axial tilt
-            orbitalInclination: 1.34, // 0.77° in radians
+            axialTilt: 1.71,
+            orbitalInclination: 1.34,
             hasRings: true,
             ringSize: 1.8,
             moons: []
         },
         {
             name: "neptune",
-            radius: 46,  // Doubled from 2.3
-            distance: 11561, // Increased from 115
+            radius: 46,
+            distance: 2500,  // Reduced from 11561
             rotationSpeed: 0.0008,
             orbitSpeed: 0.00008,
             axialTilt: 0.49,
-            orbitalInclination: 3.09, // 1.77° in radians
+            orbitalInclination: 3.09,
             hasRings: false,
             moons: []
         }
