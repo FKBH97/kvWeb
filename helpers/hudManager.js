@@ -1,4 +1,4 @@
-/**
+                                                                                                                                                                                /**
  * hudManager.js
  * Manages all HUD elements, notifications, and UI updates.
  */
@@ -17,6 +17,10 @@ const HudManager = (function() {
     let notificationQueue = [];
     let notificationActive = false;
     let notificationTimer = null;
+    
+    // AI copilot cooldown
+    let lastFactTime = 0;
+    const FACT_COOLDOWN = 20000; // 20 seconds cooldown between facts
     
     // Fun facts about planets for the AI copilot
     const planetFacts = {
@@ -84,10 +88,19 @@ const HudManager = (function() {
         try {
             if (!planetFacts[planetName]) return;
             
+            // Check if enough time has passed since the last fact
+            const currentTime = Date.now();
+            if (currentTime - lastFactTime < FACT_COOLDOWN) {
+                return; // Skip showing a new fact if we're still in cooldown
+            }
+            
             const facts = planetFacts[planetName];
             const randomFact = facts[Math.floor(Math.random() * facts.length)];
             
             displayAIMessage(`Fun fact about ${planetName.charAt(0).toUpperCase() + planetName.slice(1)}: ${randomFact}`);
+            
+            // Update the last fact time
+            lastFactTime = currentTime;
         } catch (error) {
             console.error('Error showing random fact:', error);
         }
@@ -107,10 +120,10 @@ const HudManager = (function() {
             // Show the AI copilot panel
             aiCopilot.classList.remove('hidden');
             
-            // Hide after 10 seconds
+            // Hide after 15 seconds
             setTimeout(() => {
                 aiCopilot.classList.add('hidden');
-            }, 10000);
+            }, 15000);
         }
     }
     

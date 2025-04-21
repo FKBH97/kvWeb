@@ -119,6 +119,11 @@ async function init() {
       console.warn('FTLSystem not available - FTL jumps will be disabled');
     }
     
+    // Initialize planet content system
+    if (typeof PlanetContentSystem !== 'undefined') {
+      PlanetContentSystem.init(scene, camera, renderer);
+    }
+    
     // Make sure no UI panels are showing at startup
     hideAllUIPanels();
     
@@ -243,6 +248,11 @@ function animate() {
       // Use docking camera if docked, otherwise use main camera
       const activeCamera = DockingSystem.isDocked() ? 
           DockingSystem.getDockingCamera() : camera;
+      
+      // Update planet content system
+      if (typeof PlanetContentSystem !== 'undefined') {
+        PlanetContentSystem.update();
+      }
       
       // Render with the active camera
       renderer.render(scene, activeCamera);

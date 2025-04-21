@@ -461,11 +461,15 @@ const DockingSystem = (function() {
         createPlanetInfoPanel();
         
         // Register key listener for docking/undocking
-        document.addEventListener('keydown', handleDockingKey.bind(this));
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space') {
+                handleDockingKey(event);
+            }
+        });
         
-        // Register arrow key listeners for camera tilting
-        document.addEventListener('keydown', handleCameraTilt.bind(this));
-        document.addEventListener('keyup', handleCameraTilt.bind(this));
+        // Register key listeners for camera tilt
+        document.addEventListener('keydown', handleCameraTilt);
+        document.addEventListener('keyup', handleCameraTilt);
         
         // Start docking checks
         activateDockingChecks();
@@ -474,6 +478,8 @@ const DockingSystem = (function() {
         if (typeof RocketControls !== 'undefined') {
             initialRocketPosition = RocketControls.getPosition().clone();
         }
+        
+        console.log('Docking system initialized');
     }
     
     /**
@@ -722,6 +728,11 @@ const DockingSystem = (function() {
         // Set docked state
         isDocked = true;
         
+        // Notify planet content system
+        if (typeof PlanetContentSystem !== 'undefined') {
+            PlanetContentSystem.setDockingState(true, currentPlanet);
+        }
+        
         // Start docking animation
         dockingAnimationFrameId = requestAnimationFrame(runDockingAnimation);
     }
@@ -810,6 +821,12 @@ const DockingSystem = (function() {
         
         console.log('Exiting docking mode');
         
+        // First notify planet content system before changing state
+        if (typeof PlanetContentSystem !== 'undefined') {
+            console.log('Notifying PlanetContentSystem of undocking');
+            PlanetContentSystem.setDockingState(false, null);
+        }
+        
         // Reset docking state
         isDocked = false;
         
@@ -840,149 +857,41 @@ const DockingSystem = (function() {
     
     // Public methods
     return {
-        /**
-         * Initialize the docking system
-         * @param {Object} sceneInstance - The Three.js scene
-         * @param {Object} cameraInstance - The main camera
-         * @param {Object} rendererInstance - The renderer
-         */
         init: function(sceneInstance, cameraInstance, rendererInstance) {
-            scene = sceneInstance;
-            camera = cameraInstance;
-            renderer = rendererInstance;
-            mainCamera = cameraInstance;
-            
-            // Create docking camera
-            dockingCamera = new THREE.PerspectiveCamera(
-                75, // FOV
-                window.innerWidth / window.innerHeight,
-                0.1,
-                1000
-            );
-            
-            // Create planet info panel
-            createPlanetInfoPanel();
-            
-            // Register key listener for docking/undocking
-            document.addEventListener('keydown', function(event) {
-                if (event.code === 'Space') {
-                    handleDockingKey(event);
-                }
-            });
-            
-            // Register key listeners for camera tilt
-            document.addEventListener('keydown', handleCameraTilt);
-            document.addEventListener('keyup', handleCameraTilt);
-            
-            // Start docking checks
-            this.startDockingChecks();
-            
-            // Store initial rocket position if available
-            if (typeof RocketControls !== 'undefined') {
-                initialRocketPosition = RocketControls.getPosition().clone();
-            }
-            
-            console.log('Docking system initialized');
+            init(sceneInstance, cameraInstance, rendererInstance);
         },
         
-        /**
-         * Check if the rocket is close enough to dock with a planet
-         * @param {Object} rocket - The rocket object
-         * @param {Object} planet - The planet object
-         * @returns {boolean} Whether docking is possible
-         */
-        checkDockingProximity: function(rocket, planet) {
-            if (!rocket || !planet) return false;
-            
-            // Get rocket position
-            const rocketPos = rocket.getWorldPosition(new THREE.Vector3());
-            
-            // Get planet position
-            const planetPos = new THREE.Vector3();
-            if (planet.getWorldPosition) {
-                planet.getWorldPosition(planetPos);
-            } else if (planet.position) {
-                planetPos.copy(planet.position);
-            } else {
-                console.warn('Planet has no position property or getWorldPosition method');
-                return false;
-            }
-            
-            // Calculate distance to planet
-            const distance = rocketPos.distanceTo(planetPos);
-            const planetRadius = planet.userData.radius || 5;
-            
-            // Use planet radius for docking distance
-            const dockingDistance = planetRadius * 2.5;
-            
-            // Update current planet if within docking range
-            if (distance <= dockingDistance) {
-                currentPlanet = planet;
-                
-                // Update HUD
-                if (typeof HudManager !== 'undefined') {
-                    HudManager.updatePlanetInfo(planet.userData.name);
-                }
-                
-                return true;
-            }
-            
-            return false;
-        },
-        
-        /**
-         * Update the docking system
-         */
-        update: function() {
-            if (!isDocked) return;
-            
-            // Update docking camera
-            updateDockingCamera();
-            
-            // Update UI elements
-            if (planetInfoPanel && !planetInfoPanel.classList.contains('hidden')) {
-                // Keep UI updated
-            }
-        },
-        
-        /**
-         * Check if the rocket is currently docked
-         * @returns {boolean} Whether the rocket is docked
-         */
-        isDocked: function() {
-            return isDocked;
-        },
-        
-        /**
-         * Get the current planet the rocket is docked at
-         * @returns {Object} The current planet or null if not docked
-         */
-        getCurrentPlanet: function() {
-            return currentPlanet;
-        },
-        
-        /**
-         * Get the docking camera
-         * @returns {Object} The docking camera
-         */
         getDockingCamera: function() {
             return dockingCamera;
         },
         
-        /**
-         * Start checking for docking proximity
-         */
-        startDockingChecks: function() {
-            dockingChecksActive = true;
-            console.log('Docking checks started');
+        isDocked: function() {
+            return isDocked;
         },
         
-        /**
-         * Stop checking for docking proximity
-         */
+        getCurrentPlanet: function() {
+            return currentPlanet;
+        },
+        
+        startDockingChecks: function() {
+            startDockingChecks();
+        },
+        
         stopDockingChecks: function() {
-            dockingChecksActive = false;
-            console.log('Docking checks stopped');
+            stopDockingChecks();
+        },
+        
+        setDockingState: function(docked, planet) {
+            if (docked) {
+                currentPlanet = planet;
+                initiateDocking();
+            } else {
+                exitDocking();
+            }
+        },
+        
+        exitDocking: function() {
+            exitDocking();
         }
     };
 })();
