@@ -18,6 +18,44 @@ const PlanetContentSystem = (function() {
     
     // Content for each planet
     const planetContent = {
+        mercury: {
+            panels: [
+                {
+                    title: "Mercury Facts",
+                    content: "Mercury is the smallest and innermost planet in the Solar System. Its orbital period around the Sun is only 87.97 Earth days, the shortest of all the planets. Mercury is one of four terrestrial planets in the Solar System, and is a rocky body like Earth.",
+                    position: { x: 0, y: 0, z: -20 }  // Closer behind docking position
+                },
+                {
+                    title: "Mercury Exploration",
+                    content: "Mercury has been visited by two spacecraft: Mariner 10 and MESSENGER. MESSENGER became the first spacecraft to orbit Mercury, mapping its entire surface. The planet's surface resembles that of the Moon, with numerous impact craters and no natural satellites of its own.",
+                    position: { x: -20, y: 0, z: 0 }  // Closer to the left
+                },
+                {
+                    title: "Mercury Environment",
+                    content: "Mercury has no atmosphere to retain heat, causing extreme temperature variations. Surface temperatures range from 100 K (-173 °C) at night to 700 K (427 °C) during the day. The planet has a weak magnetic field, about 1% as strong as Earth's.",
+                    position: { x: 20, y: 0, z: 0 }  // Closer to the right
+                }
+            ]
+        },
+        venus: {
+            panels: [
+                {
+                    title: "Venus Facts",
+                    content: "Venus is the second planet from the Sun and is Earth's closest planetary neighbor. It's often called Earth's twin because of their similar size and mass, but Venus has a thick toxic atmosphere filled with carbon dioxide and clouds of sulfuric acid.",
+                    position: { x: 0, y: 0, z: -20 }
+                },
+                {
+                    title: "Venus Exploration",
+                    content: "Venus has been explored by numerous spacecraft, including Venera, Mariner, Pioneer Venus, and Magellan. The Soviet Venera program achieved the first successful landing on another planet in 1970. Venus's surface is hidden beneath a thick atmosphere, making it difficult to observe from Earth.",
+                    position: { x: -20, y: 0, z: 0 }
+                },
+                {
+                    title: "Venus Environment",
+                    content: "Venus has the hottest surface of any planet in the Solar System, with a mean temperature of 737 K (464 °C). The planet's atmosphere creates a greenhouse effect that keeps the surface extremely hot. Venus rotates very slowly, with one day lasting 243 Earth days.",
+                    position: { x: 20, y: 0, z: 0 }
+                }
+            ]
+        },
         earth: {
             panels: [
                 {
@@ -34,6 +72,120 @@ const PlanetContentSystem = (function() {
                     title: "Projects",
                     content: "Led development of multiple successful mobile applications, Optimized user experience for web platforms, Implemented data-driven product strategies, Managed cross-functional teams for game development projects",
                     position: { x: 20, y: 0, z: 0 }  // Closer to the right
+                }
+            ]
+        },
+        mars: {
+            panels: [
+                {
+                    title: "Mars Facts",
+                    content: "Mars is the fourth planet from the Sun and the second-smallest planet in the Solar System. It's often called the 'Red Planet' due to its reddish appearance, which is caused by iron oxide (rust) on its surface. Mars has two small moons, Phobos and Deimos.",
+                    position: { x: 0, y: 0, z: -20 }
+                },
+                {
+                    title: "Mars Exploration",
+                    content: "Mars has been explored by numerous spacecraft, including rovers like Sojourner, Spirit, Opportunity, Curiosity, and Perseverance. These missions have revealed that Mars once had liquid water on its surface and may have supported microbial life in the past.",
+                    position: { x: -20, y: 0, z: 0 }
+                },
+                {
+                    title: "Mars Environment",
+                    content: "Mars has a thin atmosphere, primarily composed of carbon dioxide. The planet's surface features include the largest volcano in the Solar System (Olympus Mons), a canyon system (Valles Marineris), and polar ice caps. Mars experiences dust storms that can cover the entire planet.",
+                    position: { x: 20, y: 0, z: 0 }
+                }
+            ]
+        },
+        jupiter: {
+            panels: [
+                {
+                    title: "Jupiter Facts",
+                    content: "Jupiter is the fifth planet from the Sun and the largest in the Solar System. It's a gas giant with a mass more than two and a half times that of all the other planets combined. Jupiter's iconic Great Red Spot is a giant storm that has been raging for at least 400 years.",
+                    position: { x: 0, y: 0, z: -20 }
+                },
+                {
+                    title: "Jupiter Exploration",
+                    content: "Jupiter has been visited by several spacecraft, including Pioneer, Voyager, Galileo, and Juno. The Galileo mission was the first to orbit Jupiter and drop a probe into its atmosphere. Juno is currently studying Jupiter's composition, gravity field, magnetic field, and polar magnetosphere.",
+                    position: { x: -20, y: 0, z: 0 }
+                },
+                {
+                    title: "Jupiter Moons",
+                    content: "Jupiter has 79 known moons, with the four largest (Io, Europa, Ganymede, and Callisto) known as the Galilean moons. Europa is of particular interest to scientists because it has a subsurface ocean that might harbor life. Ganymede is the largest moon in the Solar System.",
+                    position: { x: 20, y: 0, z: 0 }
+                }
+            ]
+        },
+        saturn: {
+            panels: [
+                {
+                    title: "Saturn Facts",
+                    content: "Saturn is the sixth planet from the Sun and the second-largest in the Solar System. It's known for its prominent ring system, which consists of ice particles, rocky debris, and dust. Saturn is another gas giant with a beautiful appearance due to its rings and numerous moons.",
+                    position: { x: 0, y: 0, z: -20 }
+                },
+                {
+                    title: "Saturn Exploration",
+                    content: "Saturn has been visited by four spacecraft: Pioneer 11, Voyager 1, Voyager 2, and Cassini. The Cassini mission spent 13 years orbiting Saturn, studying its rings, moons, and atmosphere. Cassini's most famous discovery was the geysers of water ice on the moon Enceladus.",
+                    position: { x: -20, y: 0, z: 0 }
+                },
+                {
+                    title: "Saturn Rings",
+                    content: "Saturn's rings are made up of billions of particles, ranging in size from tiny grains to mountain-sized chunks. The rings are divided into several sections, with gaps between them. The largest gap, known as the Cassini Division, is about 4,800 kilometers wide.",
+                    position: { x: 20, y: 0, z: 0 }
+                }
+            ]
+        },
+        uranus: {
+            panels: [
+                {
+                    title: "Uranus Facts",
+                    content: "Uranus is the seventh planet from the Sun and the third-largest in the Solar System. It's an ice giant with a unique feature: it rotates on its side, with its axis of rotation nearly parallel to its orbital plane. This gives it extreme seasons that last for about 20 years.",
+                    position: { x: 0, y: 0, z: -20 }
+                },
+                {
+                    title: "Uranus Exploration",
+                    content: "Uranus has been visited by only one spacecraft: Voyager 2, which flew by the planet in 1986. The mission revealed that Uranus has a complex magnetic field, a system of rings, and 27 known moons. Most of what we know about Uranus comes from this single flyby.",
+                    position: { x: -20, y: 0, z: 0 }
+                },
+                {
+                    title: "Uranus Environment",
+                    content: "Uranus has a pale blue-green color due to methane in its atmosphere. The planet has a cold atmosphere with temperatures as low as -224°C, making it the coldest planetary atmosphere in the Solar System. Uranus also has a system of 13 rings.",
+                    position: { x: 20, y: 0, z: 0 }
+                }
+            ]
+        },
+        neptune: {
+            panels: [
+                {
+                    title: "Neptune Facts",
+                    content: "Neptune is the eighth and farthest known planet from the Sun. It's the fourth-largest planet by diameter and the third-most-massive. Neptune is another ice giant with a similar composition to Uranus, but with a more active atmosphere.",
+                    position: { x: 0, y: 0, z: -20 }
+                },
+                {
+                    title: "Neptune Exploration",
+                    content: "Neptune has been visited by only one spacecraft: Voyager 2, which flew by the planet in 1989. The mission discovered Neptune's Great Dark Spot, a storm similar to Jupiter's Great Red Spot, and six new moons. Neptune's largest moon, Triton, was found to have active geysers.",
+                    position: { x: -20, y: 0, z: 0 }
+                },
+                {
+                    title: "Neptune Environment",
+                    content: "Neptune has the strongest winds in the Solar System, reaching speeds of 2,100 km/h. The planet has a system of rings, though they are much fainter than Saturn's. Neptune's atmosphere is primarily composed of hydrogen and helium, with traces of methane that give it its blue color.",
+                    position: { x: 20, y: 0, z: 0 }
+                }
+            ]
+        },
+        luna: {
+            panels: [
+                {
+                    title: "Luna Facts",
+                    content: "Luna, or the Moon, is Earth's only natural satellite. It's the fifth-largest satellite in the Solar System and the largest relative to its parent planet. The Moon is responsible for ocean tides and has a stabilizing effect on Earth's axial tilt.",
+                    position: { x: 0, y: 0, z: -20 }
+                },
+                {
+                    title: "Luna Exploration",
+                    content: "The Moon was first visited by the Soviet Luna program in 1959. The Apollo program, particularly Apollo 11 in 1969, achieved the first human landing on the Moon. Six Apollo missions landed on the Moon, with the last one in 1972. The Moon has also been explored by numerous robotic missions.",
+                    position: { x: -20, y: 0, z: 0 }
+                },
+                {
+                    title: "Luna Environment",
+                    content: "The Moon has no atmosphere, so its surface is directly exposed to space. Temperatures on the Moon range from -233°C at night to 123°C during the day. The Moon's surface is covered in regolith, a layer of loose rock and dust, and features numerous impact craters.",
+                    position: { x: 20, y: 0, z: 0 }
                 }
             ]
         }
@@ -57,7 +209,7 @@ const PlanetContentSystem = (function() {
         // Set up click event listener
         renderer.domElement.addEventListener('click', handleClick);
         
-        console.log('Planet Content System initialized with interactivity');
+        console.log('Planet Content System initialized');
     }
     
     /**
@@ -65,9 +217,6 @@ const PlanetContentSystem = (function() {
      * @param {Event} event - The click event
      */
     function handleClick(event) {
-        // Only handle clicks when docked
-        if (!isDocked) return;
-        
         // Calculate mouse position in normalized device coordinates
         mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
         mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
@@ -79,9 +228,36 @@ const PlanetContentSystem = (function() {
         const intersects = raycaster.intersectObjects(clickableObjects, false);
         
         if (intersects.length > 0) {
+            console.log('Panel clicked:', intersects[0].object.userData.panelData.title);
             const panel = contentPanels.find(p => p.mesh === intersects[0].object);
             if (panel) {
                 showDetailPanel(panel.data);
+            }
+        }
+    }
+    
+    /**
+     * Set docking state and handle panel visibility
+     * @param {boolean} docked - Whether the system is docked
+     * @param {Object} planet - The planet object when docked
+     */
+    function setDockingState(docked, planet) {
+        console.log('Setting docking state:', { docked, planet: planet?.userData?.name });
+        
+        isDocked = docked;
+        currentPlanet = planet;
+        
+        // Hide all existing panels first
+        hideAllPanels();
+        
+        if (docked && planet) {
+            // Show panels only for the docked planet
+            const planetName = planet.userData.name.toLowerCase();
+            if (planetContent[planetName]) {
+                planetContent[planetName].panels.forEach(panelData => {
+                    createContentPanel(panelData, planet);
+                });
+                console.log(`Created panels for docked planet: ${planetName}`);
             }
         }
     }
@@ -176,9 +352,12 @@ const PlanetContentSystem = (function() {
     /**
      * Create a content panel
      * @param {Object} panelData - Panel data including position
+     * @param {Object} planet - The planet object to attach the panel to
      * @returns {Object} The created panel
      */
-    function createContentPanel(panelData) {
+    function createContentPanel(panelData, planet) {
+        console.log(`Creating panel "${panelData.title}" for planet ${planet.userData.name}`);
+        
         const panelGeometry = new THREE.PlaneGeometry(25, 18);
         
         // Create canvas for the panel content
@@ -187,8 +366,8 @@ const PlanetContentSystem = (function() {
         canvas.height = 1536;
         const context = canvas.getContext('2d');
         
-        // Set background
-        context.fillStyle = 'rgba(34, 40, 49, 0.95)';
+        // Set background with more opacity
+        context.fillStyle = 'rgba(34, 40, 49, 0.98)';
         context.fillRect(0, 0, canvas.width, canvas.height);
         
         // Add border
@@ -231,7 +410,7 @@ const PlanetContentSystem = (function() {
         const material = new THREE.MeshBasicMaterial({
             map: texture,
             transparent: true,
-            opacity: 0.95,
+            opacity: 0.98,
             side: THREE.DoubleSide
         });
         
@@ -249,21 +428,37 @@ const PlanetContentSystem = (function() {
         container.userData.isContentPanel = true;
         container.add(panelMesh);
         
-        // Set absolute position
-        container.position.set(
-            panelData.position.x,
-            panelData.position.y,
-            panelData.position.z
-        );
+        // Calculate position relative to planet
+        const planetRadius = planet.userData.radius || 5;
+        const scaleFactor = planetRadius / 5;
+        const panelDistance = planetRadius * 2; // Position panels further from planet
+        
+        const scaledPosition = new THREE.Vector3(
+            panelData.position.x * scaleFactor,
+            panelData.position.y * scaleFactor,
+            panelData.position.z * scaleFactor
+        ).normalize().multiplyScalar(panelDistance);
+        
+        // Get planet's world position
+        const planetPos = new THREE.Vector3();
+        if (planet.getWorldPosition) {
+            planet.getWorldPosition(planetPos);
+        } else if (planet.position) {
+            planetPos.copy(planet.position);
+        }
+        
+        // Set position relative to planet
+        container.position.copy(planetPos).add(scaledPosition);
         
         // Add container to scene
         scene.add(container);
         
-        // Store panel reference
+        // Store panel reference with its associated planet
         contentPanels.push({
             container: container,
             mesh: panelMesh,
             data: panelData,
+            planet: planet,
             isContentPanel: true
         });
         
@@ -271,160 +466,81 @@ const PlanetContentSystem = (function() {
     }
     
     /**
-     * Show content panels for current docking position
+     * Update panel positions and visibility
      */
-    function showPanels() {
-        hideAllPanels();
+    function update() {
+        // Only update panels if docked
+        if (!isDocked || !currentPlanet) return;
         
-        // Get panels for the current planet
-        const planetName = currentPlanet ? currentPlanet.userData.name.toLowerCase() : null;
-        const planetData = planetContent[planetName];
-        
-        if (!planetData) return;
-        
-        planetData.panels.forEach(panelData => {
-            createContentPanel(panelData);
-        });
-    }
-    
-    /**
-     * Force remove all panel-related objects from the scene
-     */
-    function forceCleanupScene() {
-        // Traverse the entire scene to find and remove any remaining panels
-        scene.traverse((object) => {
-            if (object.userData && object.userData.isContentPanel) {
-                if (object.parent) {
-                    object.parent.remove(object);
+        // Update all panels to follow their planets
+        contentPanels.forEach(panel => {
+            if (panel.container && panel.planet) {
+                const planetPos = new THREE.Vector3();
+                if (panel.planet.getWorldPosition) {
+                    panel.planet.getWorldPosition(planetPos);
+                } else if (panel.planet.position) {
+                    planetPos.copy(panel.planet.position);
                 }
-                if (object.material) {
-                    if (object.material.map) {
-                        object.material.map.dispose();
-                    }
-                    object.material.dispose();
-                }
-                if (object.geometry) {
-                    object.geometry.dispose();
+                
+                // Calculate panel position relative to planet
+                const planetRadius = panel.planet.userData.radius || 5;
+                const scaleFactor = planetRadius / 5;
+                const panelDistance = planetRadius * 2;
+                
+                const scaledPosition = new THREE.Vector3(
+                    panel.data.position.x * scaleFactor,
+                    panel.data.position.y * scaleFactor,
+                    panel.data.position.z * scaleFactor
+                ).normalize().multiplyScalar(panelDistance);
+                
+                // Update panel position
+                panel.container.position.copy(planetPos).add(scaledPosition);
+                
+                // Make panel face the camera
+                if (camera) {
+                    panel.container.lookAt(camera.position);
                 }
             }
         });
-
-        // Force scene to update
-        scene.updateMatrixWorld(true);
-        
-        // Clear any remaining references
-        clickableObjects.length = 0;
-        contentPanels.length = 0;
     }
     
     /**
      * Hide all content panels
      */
     function hideAllPanels() {
-        console.log('PlanetContentSystem: Hiding all panels, count:', contentPanels.length);
+        console.log('Hiding all panels');
         
-        // Store a temporary reference to all panels we need to clean up
-        const panelsToRemove = [...contentPanels];
-        
-        // Clear arrays first to prevent any further updates
-        clickableObjects.length = 0;
-        contentPanels.length = 0;
-        
-        // Now clean up each panel
-        panelsToRemove.forEach(panel => {
-            try {
-                // Remove the container from the scene
-                if (panel.container) {
-                    scene.remove(panel.container);
-                    
-                    // Also remove mesh from container
-                    if (panel.mesh && panel.mesh.parent === panel.container) {
-                        panel.container.remove(panel.mesh);
+        // Remove all panels from the scene
+        contentPanels.forEach(panel => {
+            if (panel.container && panel.container.parent) {
+                panel.container.parent.remove(panel.container);
+            }
+            if (panel.mesh) {
+                if (panel.mesh.material) {
+                    if (panel.mesh.material.map) {
+                        panel.mesh.material.map.dispose();
                     }
+                    panel.mesh.material.dispose();
                 }
-                
-                // Handle material and geometry disposal
-                if (panel.mesh) {
-                    if (panel.mesh.material) {
-                        if (panel.mesh.material.map) {
-                            panel.mesh.material.map.dispose();
-                        }
-                        panel.mesh.material.dispose();
-                    }
-                    if (panel.mesh.geometry) {
-                        panel.mesh.geometry.dispose();
-                    }
+                if (panel.mesh.geometry) {
+                    panel.mesh.geometry.dispose();
                 }
-                
-                // If for some reason the mesh is directly in the scene, remove it
-                if (panel.mesh && panel.mesh.parent === scene) {
-                    scene.remove(panel.mesh);
-                }
-            } catch (e) {
-                console.error('Error removing panel:', e);
             }
         });
         
-        // Force additional cleanup of any remaining panels
-        forceCleanupScene();
+        // Clear the panels array
+        contentPanels = [];
         
-        // Hide detail panel
-        hideDetailPanel();
-    }
-    
-    /**
-     * Set docking state and update content visibility
-     * @param {boolean} docked - Whether the rocket is docked
-     * @param {Object} planet - The planet the rocket is docked at
-     */
-    function setDockingState(docked, planet) {
-        // Force cleanup first, regardless of state
-        hideAllPanels();
-        forceCleanupScene();
+        // Clear clickable objects
+        clickableObjects = [];
         
-        // Update state
-        isDocked = docked;
-        currentPlanet = planet;
-        
-        // If docking, show new panels
-        if (isDocked) {
-            showPanels();
-        }
-    }
-    
-    /**
-     * Update the planet content system
-     */
-    function update() {
-        // Force-check docking state
-        const dockingSystemAvailable = typeof DockingSystem !== 'undefined';
-        const systemDocked = dockingSystemAvailable && typeof DockingSystem.isDocked === 'function' 
-            ? DockingSystem.isDocked() 
-            : false;
-        
-        // If we should be undocked, force cleanup
-        if (!systemDocked && isDocked) {
-            setDockingState(false, null);
-            return;
+        // Hide detail panel if visible
+        if (detailPanelElement) {
+            detailPanelElement.style.display = 'none';
         }
         
-        // Only update panels if we're docked
-        if (isDocked) {
-            contentPanels.forEach(panel => {
-                if (!panel.mesh || !panel.container) return;
-                
-                try {
-                    // Make panel face the camera
-                    const dockingCamera = dockingSystemAvailable && DockingSystem.getDockingCamera 
-                        ? DockingSystem.getDockingCamera() 
-                        : camera;
-                    panel.mesh.lookAt(dockingCamera.position);
-                    panel.mesh.up.set(0, 1, 0);
-                } catch (e) {
-                    console.error('Error updating panel:', e);
-                }
-            });
-        }
+        // Force scene to update
+        scene.updateMatrixWorld(true);
     }
     
     // Public methods
@@ -439,11 +555,6 @@ const PlanetContentSystem = (function() {
             init(sceneInstance, cameraInstance, rendererInstance);
         },
         
-        /**
-         * Set docking state
-         * @param {boolean} docked - Whether the rocket is docked
-         * @param {Object} planet - The planet the rocket is docked at
-         */
         setDockingState: function(docked, planet) {
             setDockingState(docked, planet);
         },
@@ -460,6 +571,13 @@ const PlanetContentSystem = (function() {
          */
         hideDetailPanel: function() {
             hideDetailPanel();
+        },
+        
+        /**
+         * Hide all content panels
+         */
+        hideAllPanels: function() {
+            hideAllPanels();
         }
     };
 })();

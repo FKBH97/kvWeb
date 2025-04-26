@@ -320,30 +320,31 @@ const PlanetSetup = (function() {
      * @returns {Object} The planet mesh
      */
     function createPlanetMesh(planetData) {
-        const geometry = new THREE.SphereGeometry(
-            planetData.radius, 
-            32, // width segments
-            32  // height segments
-        );
-        
-        // Create planet material with improved settings
-        const material = createPlanetMaterial(planetData);
-        material.side = THREE.FrontBack; // Make both sides visible
-        
+        const geometry = new THREE.SphereGeometry(planetData.radius, 64, 64);
+        let material;
+
+        try {
+            material = createPlanetMaterial(planetData);
+        } catch (error) {
+            console.warn(`Failed to create material for ${planetData.name}, using fallback`, error);
+            material = createFallbackMaterial(planetData.name);
+        }
+
         const planet = new THREE.Mesh(geometry, material);
-        planet.name = planetData.name;
         
-        // Add planet data to the mesh for reference
+        // Combine all userData into a single assignment
         planet.userData = {
             name: planetData.name,
+            isPlanet: true,
             radius: planetData.radius,
+            distance: planetData.distance,
             orbitDistance: planetData.distance,
-            orbitSpeed: planetData.orbitSpeed,
             rotationSpeed: planetData.rotationSpeed,
+            orbitSpeed: planetData.orbitSpeed,
             axialTilt: planetData.axialTilt,
             moons: [],
-            spaceStations: [], // Add space stations array
-            id: Math.random().toString(36).substr(2, 9) // Add unique ID for docking system
+            spaceStations: [],
+            id: Math.random().toString(36).substr(2, 9)
         };
         
         // Apply axial tilt
