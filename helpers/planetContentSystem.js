@@ -3,6 +3,8 @@
  * Manages planet-specific content panels that appear when docked at a planet.
  */
 
+console.log('planetContentSystem.js loaded');
+
 const PlanetContentSystem = (function() {
     // Private variables
     let scene;
@@ -201,6 +203,7 @@ const PlanetContentSystem = (function() {
         scene = sceneRef;
         camera = cameraRef;
         renderer = rendererRef;
+        console.log('PlanetContentSystem initialized with:', {scene, camera, renderer});
         
         // Initialize raycaster for click detection
         raycaster = new THREE.Raycaster();
@@ -253,12 +256,34 @@ const PlanetContentSystem = (function() {
         if (docked && planet) {
             // Show panels only for the docked planet
             const planetName = planet.userData.name.toLowerCase();
+            console.log(`Looking for content for planet: ${planetName}`);
+            console.log(`Available planet content:`, Object.keys(planetContent));
+            
             if (planetContent[planetName]) {
+                console.log(`Found content for ${planetName} with ${planetContent[planetName].panels.length} panels`);
+                // Create panels with proper positioning
                 planetContent[planetName].panels.forEach(panelData => {
-                    createContentPanel(panelData, planet);
+                    console.log(`Creating panel: ${panelData.title}`);
+                    const panel = createContentPanel(panelData, planet);
+                    if (panel) {
+                        // Make panel visible
+                        panel.visible = true;
+                        panel.traverse(child => {
+                            if (child.isMesh) {
+                                child.visible = true;
+                            }
+                        });
+                        console.log(`Panel created and made visible: ${panelData.title}`);
+                    } else {
+                        console.error(`Failed to create panel: ${panelData.title}`);
+                    }
                 });
                 console.log(`Created panels for docked planet: ${planetName}`);
+            } else {
+                console.warn(`No content found for planet: ${planetName}`);
             }
+        } else {
+            console.log(`Not creating panels: docked=${docked}, planet=${planet ? planet.userData.name : 'none'}`);
         }
     }
     
@@ -358,52 +383,44 @@ const PlanetContentSystem = (function() {
     function createContentPanel(panelData, planet) {
         console.log(`Creating panel "${panelData.title}" for planet ${planet.userData.name}`);
         
-        const panelGeometry = new THREE.PlaneGeometry(25, 18);
+        // Create panel geometry
+        const panelGeometry = new THREE.PlaneGeometry(10, 6);
         
-        // Create canvas for the panel content
+        // Create canvas for panel content
         const canvas = document.createElement('canvas');
-        canvas.width = 2048;
-        canvas.height = 1536;
-        const context = canvas.getContext('2d');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
         
-        // Set background with more opacity
-        context.fillStyle = 'rgba(34, 40, 49, 0.98)';
-        context.fillRect(0, 0, canvas.width, canvas.height);
+        // Draw panel background
+        ctx.fillStyle = 'rgba(34, 40, 49, 0.95)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Add border
-        context.strokeStyle = '#00A3E0';
-        context.lineWidth = 8;
-        context.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+        // Draw title
+        ctx.fillStyle = '#00A3E0';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(panelData.title, canvas.width / 2, 50);
         
-        // Add title
-        context.font = 'bold 96px Arial';
-        context.fillStyle = '#00A3E0';
-        context.textAlign = 'center';
-        context.fillText(panelData.title, canvas.width / 2, 120);
-        
-        // Add content with word wrap
-        context.font = '64px Arial';
-        context.fillStyle = '#FFFFFF';
-        context.textAlign = 'left';
-        
+        // Draw content
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '16px Arial';
         const words = panelData.content.split(' ');
         let line = '';
-        let y = 240;
-        const maxWidth = canvas.width - 120;
-        const lineHeight = 80;
+        let y = 100;
         
         words.forEach(word => {
             const testLine = line + word + ' ';
-            const metrics = context.measureText(testLine);
-            if (metrics.width > maxWidth) {
-                context.fillText(line, 60, y);
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > canvas.width - 40) {
+                ctx.fillText(line, canvas.width / 2, y);
                 line = word + ' ';
-                y += lineHeight;
+                y += 30;
             } else {
                 line = testLine;
             }
         });
-        context.fillText(line, 60, y);
+        ctx.fillText(line, canvas.width / 2, y);
         
         // Create texture and material
         const texture = new THREE.CanvasTexture(canvas);
@@ -431,7 +448,7 @@ const PlanetContentSystem = (function() {
         // Calculate position relative to planet
         const planetRadius = planet.userData.radius || 5;
         const scaleFactor = planetRadius / 5;
-        const panelDistance = planetRadius * 2; // Position panels further from planet
+        const panelDistance = planetRadius * 3; // Position panels further from planet
         
         const scaledPosition = new THREE.Vector3(
             panelData.position.x * scaleFactor,
@@ -449,11 +466,19 @@ const PlanetContentSystem = (function() {
         
         // Set position relative to planet
         container.position.copy(planetPos).add(scaledPosition);
+        console.log(`Panel "${panelData.title}" position:`, container.position);
+        
+        // Make panel face the camera initially
+        if (camera) {
+            container.lookAt(camera.position);
+            console.log(`Panel "${panelData.title}" is facing camera at:`, camera.position);
+        }
         
         // Add container to scene
         scene.add(container);
+        console.log(`Panel "${panelData.title}" added to scene.`);
         
-        // Store panel reference with its associated planet
+        // Store panel reference
         contentPanels.push({
             container: container,
             mesh: panelMesh,
@@ -462,6 +487,15 @@ const PlanetContentSystem = (function() {
             isContentPanel: true
         });
         
+        // Ensure panel is visible
+        container.visible = true;
+        container.traverse(child => {
+            if (child.isMesh) {
+                child.visible = true;
+            }
+        });
+        
+        console.log(`Panel created successfully: ${panelData.title}`);
         return container;
     }
     
@@ -485,7 +519,7 @@ const PlanetContentSystem = (function() {
                 // Calculate panel position relative to planet
                 const planetRadius = panel.planet.userData.radius || 5;
                 const scaleFactor = planetRadius / 5;
-                const panelDistance = planetRadius * 2;
+                const panelDistance = planetRadius * 3;
                 
                 const scaledPosition = new THREE.Vector3(
                     panel.data.position.x * scaleFactor,
@@ -500,6 +534,14 @@ const PlanetContentSystem = (function() {
                 if (camera) {
                     panel.container.lookAt(camera.position);
                 }
+                
+                // Ensure panel is visible
+                panel.container.visible = true;
+                panel.container.traverse(child => {
+                    if (child.isMesh) {
+                        child.visible = true;
+                    }
+                });
             }
         });
     }
@@ -556,6 +598,7 @@ const PlanetContentSystem = (function() {
         },
         
         setDockingState: function(docked, planet) {
+            console.log('PlanetContentSystem.setDockingState called with:', {docked, planet});
             setDockingState(docked, planet);
         },
         

@@ -120,8 +120,12 @@ async function init() {
     }
     
     // Initialize planet content system
+    console.log('About.js: About to initialize PlanetContentSystem', {scene, camera, renderer, PlanetContentSystem});
     if (typeof PlanetContentSystem !== 'undefined') {
       PlanetContentSystem.init(scene, camera, renderer);
+      console.log('About.js: PlanetContentSystem.init called');
+    } else {
+      throw new Error('PlanetContentSystem is undefined! Check script loading order and path.');
     }
     
     // Make sure no UI panels are showing at startup

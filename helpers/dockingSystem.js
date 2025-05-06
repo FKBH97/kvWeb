@@ -409,6 +409,13 @@ const DockingSystem = (function() {
                     rocket.quaternion.setFromRotationMatrix(matrix);
                 }
             }
+            // Ensure content panels are shown after docking
+            if (typeof PlanetContentSystem !== 'undefined') {
+                console.log('Notifying PlanetContentSystem of docking (after animation)', currentPlanet);
+                PlanetContentSystem.setDockingState(true, currentPlanet);
+            } else {
+                console.error('PlanetContentSystem not available');
+            }
         }
     }
     
@@ -670,17 +677,14 @@ const DockingSystem = (function() {
     function initiateDocking(planet) {
         if (isDocked || !planet) return;
         
+        console.log('Initiating docking with planet:', planet.userData.name);
+        
         currentPlanet = planet;
         isDocked = true;
         
         // Update HUD
         if (typeof HudManager !== 'undefined') {
             HudManager.setDockingPromptVisible(false);
-        }
-        
-        // Notify planet content system
-        if (typeof PlanetContentSystem !== 'undefined') {
-            PlanetContentSystem.setDockingState(true, planet);
         }
         
         // Find nearest space station
@@ -803,6 +807,8 @@ const DockingSystem = (function() {
         if (typeof PlanetContentSystem !== 'undefined') {
             console.log('Notifying PlanetContentSystem of undocking');
             PlanetContentSystem.setDockingState(false, null);
+        } else {
+            console.error('PlanetContentSystem not available');
         }
         
         // Reset docking state
@@ -901,7 +907,7 @@ const DockingSystem = (function() {
         setDockingState: function(docked, planet) {
             if (docked) {
                 currentPlanet = planet;
-                initiateDocking();
+                initiateDocking(planet);
             } else {
                 exitDocking();
             }
