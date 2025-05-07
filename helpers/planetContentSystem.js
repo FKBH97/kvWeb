@@ -200,19 +200,41 @@ const PlanetContentSystem = (function() {
      * @param {Object} rendererRef - Three.js renderer
      */
     function init(sceneRef, cameraRef, rendererRef) {
+        if (!sceneRef || !cameraRef || !rendererRef) {
+            console.error('PlanetContentSystem: Missing required references', {
+                scene: !!sceneRef,
+                camera: !!cameraRef,
+                renderer: !!rendererRef
+            });
+            return;
+        }
+
         scene = sceneRef;
         camera = cameraRef;
         renderer = rendererRef;
-        console.log('PlanetContentSystem initialized with:', {scene, camera, renderer});
+        
+        console.log('PlanetContentSystem initialized with:', {
+            scene: scene.uuid,
+            camera: camera.uuid,
+            renderer: renderer.domElement.id
+        });
         
         // Initialize raycaster for click detection
         raycaster = new THREE.Raycaster();
         mouse = new THREE.Vector2();
         
         // Set up click event listener
-        renderer.domElement.addEventListener('click', handleClick);
+        if (renderer.domElement) {
+            renderer.domElement.addEventListener('click', handleClick);
+            console.log('Click event listener added to renderer');
+        } else {
+            console.error('Renderer DOM element not found');
+        }
         
-        console.log('Planet Content System initialized');
+        // Clear any existing panels
+        hideAllPanels();
+        
+        console.log('Planet Content System initialization complete');
     }
     
     /**
@@ -232,7 +254,9 @@ const PlanetContentSystem = (function() {
         
         if (intersects.length > 0) {
             console.log('Panel clicked:', intersects[0].object.userData.panelData.title);
-            const panel = contentPanels.find(p => p.mesh === intersects[0].object);
+            const panel = contentPanels.find(
+                p => p.meshFront === intersects[0].object || p.meshBack === intersects[0].object
+            );
             if (panel) {
                 showDetailPanel(panel.data);
             }
@@ -245,7 +269,13 @@ const PlanetContentSystem = (function() {
      * @param {Object} planet - The planet object when docked
      */
     function setDockingState(docked, planet) {
-        console.log('Setting docking state:', { docked, planet: planet?.userData?.name });
+        console.log('Setting docking state:', { 
+            docked, 
+            planet: planet?.userData?.name,
+            scene: !!scene,
+            camera: !!camera,
+            renderer: !!renderer
+        });
         
         isDocked = docked;
         currentPlanet = planet;
@@ -261,23 +291,35 @@ const PlanetContentSystem = (function() {
             
             if (planetContent[planetName]) {
                 console.log(`Found content for ${planetName} with ${planetContent[planetName].panels.length} panels`);
+                
                 // Create panels with proper positioning
                 planetContent[planetName].panels.forEach(panelData => {
                     console.log(`Creating panel: ${panelData.title}`);
                     const panel = createContentPanel(panelData, planet);
                     if (panel) {
-                        // Make panel visible
+                        // Make panel visible and ensure it's added to the scene
                         panel.visible = true;
                         panel.traverse(child => {
                             if (child.isMesh) {
                                 child.visible = true;
+                                child.material.transparent = true;
+                                child.material.opacity = 0.98;
                             }
                         });
+                        
+                        // Ensure panel is added to scene if not already
+                        if (!panel.parent) {
+                            scene.add(panel);
+                        }
+                        
                         console.log(`Panel created and made visible: ${panelData.title}`);
                     } else {
                         console.error(`Failed to create panel: ${panelData.title}`);
                     }
                 });
+                
+                // Force a scene update
+                scene.updateMatrixWorld(true);
                 console.log(`Created panels for docked planet: ${planetName}`);
             } else {
                 console.warn(`No content found for planet: ${planetName}`);
@@ -292,64 +334,101 @@ const PlanetContentSystem = (function() {
      * @param {Object} panelData - The panel data to display
      */
     function showDetailPanel(panelData) {
-        // Create or get the detail panel container
-        if (!detailPanelElement) {
-            detailPanelElement = document.createElement('div');
-            detailPanelElement.id = 'content-detail-panel';
-            detailPanelElement.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                width: 80%;
-                max-width: 800px;
-                background: rgba(34, 40, 49, 0.98);
-                border: 3px solid #00A3E0;
-                border-radius: 10px;
-                box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
-                color: white;
-                font-family: Arial, sans-serif;
-                z-index: 1000;
-                padding: 20px;
-                display: none;
-                max-height: 80vh;
-                overflow-y: auto;
-            `;
-            document.body.appendChild(detailPanelElement);
-        }
-        
-        // Set content
-        detailPanelElement.innerHTML = `
-            <div style="position: relative;">
-                <h2 style="color: #00A3E0; margin-top: 0; padding-right: 40px; font-size: 28px;">${panelData.title}</h2>
-                <button id="close-detail-panel" style="
-                    position: absolute;
-                    top: 0;
-                    right: 0;
-                    background: #00A3E0;
-                    color: white;
-                    border: none;
-                    border-radius: 50%;
-                    width: 30px;
-                    height: 30px;
-                    font-size: 20px;
-                    line-height: 1;
-                    cursor: pointer;
-                ">×</button>
-                <div style="line-height: 1.6; font-size: 18px; margin-top: 15px;">
-                    ${panelData.content}
-                </div>
-            </div>
+        // Create modal overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         `;
         
-        // Show the panel
-        detailPanelElement.style.display = 'block';
+        // Create modal content
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            background: rgba(34, 40, 49, 0.98);
+            border: 3px solid #00A3E0;
+            border-radius: 15px;
+            padding: 30px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            color: white;
+            font-family: Arial, sans-serif;
+            box-shadow: 0 0 30px rgba(0, 163, 224, 0.3);
+        `;
         
-        // Add close button event listener
-        document.getElementById('close-detail-panel').addEventListener('click', hideDetailPanel);
+        // Create close button
+        const closeButton = document.createElement('button');
+        closeButton.innerHTML = '×';
+        closeButton.style.cssText = `
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #00A3E0;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            font-size: 24px;
+            line-height: 1;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        `;
+        closeButton.onmouseover = () => closeButton.style.background = '#0077B3';
+        closeButton.onmouseout = () => closeButton.style.background = '#00A3E0';
+        closeButton.onclick = () => {
+            document.body.removeChild(overlay);
+            document.removeEventListener('keydown', handleEscapeKey);
+        };
+        
+        // Create title
+        const title = document.createElement('h2');
+        title.textContent = panelData.title;
+        title.style.cssText = `
+            color: #00A3E0;
+            margin: 0 0 20px 0;
+            font-size: 32px;
+            padding-right: 40px;
+        `;
+        
+        // Create content
+        const content = document.createElement('div');
+        content.textContent = panelData.content;
+        content.style.cssText = `
+            line-height: 1.8;
+            font-size: 18px;
+            color: #FFFFFF;
+        `;
+        
+        // Assemble modal
+        modal.appendChild(closeButton);
+        modal.appendChild(title);
+        modal.appendChild(content);
+        overlay.appendChild(modal);
+        
+        // Add to document
+        document.body.appendChild(overlay);
         
         // Add escape key listener
         document.addEventListener('keydown', handleEscapeKey);
+        
+        // Add click outside to close
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                document.body.removeChild(overlay);
+                document.removeEventListener('keydown', handleEscapeKey);
+            }
+        });
     }
     
     /**
@@ -358,20 +437,12 @@ const PlanetContentSystem = (function() {
      */
     function handleEscapeKey(event) {
         if (event.key === 'Escape') {
-            hideDetailPanel();
+            const overlay = document.querySelector('div[style*="position: fixed"]');
+            if (overlay) {
+                document.body.removeChild(overlay);
+                document.removeEventListener('keydown', handleEscapeKey);
+            }
         }
-    }
-    
-    /**
-     * Hide the detail panel
-     */
-    function hideDetailPanel() {
-        if (detailPanelElement) {
-            detailPanelElement.style.display = 'none';
-        }
-        
-        // Remove escape key listener
-        document.removeEventListener('keydown', handleEscapeKey);
     }
     
     /**
@@ -381,15 +452,24 @@ const PlanetContentSystem = (function() {
      * @returns {Object} The created panel
      */
     function createContentPanel(panelData, planet) {
+        if (!scene || !camera || !planet) {
+            console.error('Cannot create panel: missing required references', {
+                scene: !!scene,
+                camera: !!camera,
+                planet: !!planet
+            });
+            return null;
+        }
+
         console.log(`Creating panel "${panelData.title}" for planet ${planet.userData.name}`);
         
-        // Create panel geometry
-        const panelGeometry = new THREE.PlaneGeometry(10, 6);
+        // Create panel geometry - increased size from 10x6 to 15x9
+        const panelGeometry = new THREE.PlaneGeometry(15, 9);
         
-        // Create canvas for panel content
+        // Create canvas for panel content - increased resolution
         const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
+        canvas.width = 1024;  // Increased from 512
+        canvas.height = 1024; // Increased from 512
         const ctx = canvas.getContext('2d');
         
         // Draw panel background
@@ -398,24 +478,24 @@ const PlanetContentSystem = (function() {
         
         // Draw title
         ctx.fillStyle = '#00A3E0';
-        ctx.font = 'bold 24px Arial';
+        ctx.font = 'bold 48px Arial';  // Increased font size
         ctx.textAlign = 'center';
-        ctx.fillText(panelData.title, canvas.width / 2, 50);
+        ctx.fillText(panelData.title, canvas.width / 2, 100);  // Increased y position
         
         // Draw content
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = '16px Arial';
+        ctx.font = '32px Arial';  // Increased font size
         const words = panelData.content.split(' ');
         let line = '';
-        let y = 100;
+        let y = 200;  // Increased starting y position
         
         words.forEach(word => {
             const testLine = line + word + ' ';
             const metrics = ctx.measureText(testLine);
-            if (metrics.width > canvas.width - 40) {
+            if (metrics.width > canvas.width - 80) {  // Increased margin
                 ctx.fillText(line, canvas.width / 2, y);
                 line = word + ' ';
-                y += 30;
+                y += 60;  // Increased line spacing
             } else {
                 line = testLine;
             }
@@ -428,27 +508,37 @@ const PlanetContentSystem = (function() {
             map: texture,
             transparent: true,
             opacity: 0.98,
-            side: THREE.DoubleSide
+            side: THREE.FrontSide // Only front side for each mesh
         });
+        // For the back, use the same material (not mirrored)
+        const backMaterial = material.clone();
+        backMaterial.side = THREE.FrontSide;
         
-        // Create mesh
-        const panelMesh = new THREE.Mesh(panelGeometry, material);
+        // Create mesh for front
+        const panelMeshFront = new THREE.Mesh(panelGeometry, material);
+        panelMeshFront.userData.clickable = true;
+        panelMeshFront.userData.panelData = panelData;
+        panelMeshFront.userData.isContentPanel = true;
+        clickableObjects.push(panelMeshFront);
         
-        // Make mesh clickable
-        panelMesh.userData.clickable = true;
-        panelMesh.userData.panelData = panelData;
-        panelMesh.userData.isContentPanel = true;
-        clickableObjects.push(panelMesh);
+        // Create mesh for back (rotated 180deg around Y)
+        const panelMeshBack = new THREE.Mesh(panelGeometry, backMaterial);
+        panelMeshBack.rotation.y = Math.PI;
+        panelMeshBack.userData.clickable = true;
+        panelMeshBack.userData.panelData = panelData;
+        panelMeshBack.userData.isContentPanel = true;
+        clickableObjects.push(panelMeshBack);
         
         // Create a container for the panel
         const container = new THREE.Object3D();
         container.userData.isContentPanel = true;
-        container.add(panelMesh);
+        container.add(panelMeshFront);
+        container.add(panelMeshBack);
         
         // Calculate position relative to planet
         const planetRadius = planet.userData.radius || 5;
         const scaleFactor = planetRadius / 5;
-        const panelDistance = planetRadius * 3; // Position panels further from planet
+        const panelDistance = planetRadius * 2.5;  // Increased from 2 to 2.5 for better visibility
         
         const scaledPosition = new THREE.Vector3(
             panelData.position.x * scaleFactor,
@@ -481,7 +571,9 @@ const PlanetContentSystem = (function() {
         // Store panel reference
         contentPanels.push({
             container: container,
-            mesh: panelMesh,
+            mesh: panelMeshFront, // For backward compatibility
+            meshFront: panelMeshFront,
+            meshBack: panelMeshBack,
             data: panelData,
             planet: planet,
             isContentPanel: true
@@ -492,8 +584,13 @@ const PlanetContentSystem = (function() {
         container.traverse(child => {
             if (child.isMesh) {
                 child.visible = true;
+                child.material.transparent = true;
+                child.material.opacity = 0.98;
             }
         });
+        
+        // Force a scene update
+        scene.updateMatrixWorld(true);
         
         console.log(`Panel created successfully: ${panelData.title}`);
         return container;

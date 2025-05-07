@@ -120,12 +120,29 @@ async function init() {
     }
     
     // Initialize planet content system
-    console.log('About.js: About to initialize PlanetContentSystem', {scene, camera, renderer, PlanetContentSystem});
+    console.log('About.js: About to initialize PlanetContentSystem', {
+        scene: scene,
+        camera: camera,
+        renderer: renderer,
+        PlanetContentSystem: typeof PlanetContentSystem
+    });
+    
     if (typeof PlanetContentSystem !== 'undefined') {
-      PlanetContentSystem.init(scene, camera, renderer);
-      console.log('About.js: PlanetContentSystem.init called');
+        // Ensure scene, camera, and renderer are properly initialized
+        if (!scene || !camera || !renderer) {
+            console.error('Scene, camera, or renderer not properly initialized');
+            return;
+        }
+        
+        // Initialize with explicit references
+        PlanetContentSystem.init(scene, camera, renderer);
+        console.log('About.js: PlanetContentSystem initialized with:', {
+            scene: scene.uuid,
+            camera: camera.uuid,
+            renderer: renderer.domElement.id
+        });
     } else {
-      throw new Error('PlanetContentSystem is undefined! Check script loading order and path.');
+        throw new Error('PlanetContentSystem is undefined! Check script loading order and path.');
     }
     
     // Make sure no UI panels are showing at startup

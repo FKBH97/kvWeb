@@ -28,7 +28,7 @@ const DockingSystem = (function() {
     // Constants
     const DOCKING_DISTANCE = 30.0;
     const DOCKING_ANIMATION_DURATION = 2000; // ms
-    const STATION_DOCK_DISTANCE = 10.0; // Distance to detect space station docking
+    const STATION_DOCK_DISTANCE = 70.0; // Increased from 10.0 to 70.0 for easier docking
     
     // Flag to track if the rocket has moved from its initial position
     let hasRocketMoved = false;
@@ -644,7 +644,7 @@ const DockingSystem = (function() {
         const directionToPlanet = new THREE.Vector3().subVectors(planetPosition, stationPosition).normalize();
         
         // Calculate camera position behind the station relative to planet direction
-        const cameraOffset = new THREE.Vector3().copy(directionToPlanet).multiplyScalar(-40); // 40 units behind station
+        const cameraOffset = new THREE.Vector3().copy(directionToPlanet).multiplyScalar(-30); // Reduced distance for better panel visibility
         
         // Apply camera tilt
         const tiltMatrix = new THREE.Matrix4();
@@ -658,8 +658,13 @@ const DockingSystem = (function() {
         dockingCamera.position.copy(stationPosition).add(tiltedOffset);
         
         // Make camera look at planet with slight offset for better perspective
-        const lookAtOffset = new THREE.Vector3(0, 2, 0); // Slight upward offset
+        const lookAtOffset = new THREE.Vector3(0, 2, 0);
         dockingCamera.lookAt(planetPosition.clone().add(lookAtOffset));
+        
+        // Update camera's near and far planes for better visibility
+        dockingCamera.near = 0.1;
+        dockingCamera.far = 1000;
+        dockingCamera.updateProjectionMatrix();
         
         // Log camera position for debugging
         console.log('Camera position updated:', {
@@ -675,25 +680,48 @@ const DockingSystem = (function() {
      * @param {Object} planet - The planet to dock with
      */
     function initiateDocking(planet) {
-        if (isDocked || !planet) return;
+        if (!currentPlanet || isDocked) return;
         
-        console.log('Initiating docking with planet:', planet.userData.name);
+        console.log('Initiating docking sequence...', {
+            planet: currentPlanet.userData.name,
+            isDocked: isDocked,
+            planetContentSystem: typeof PlanetContentSystem
+        });
         
-        currentPlanet = planet;
         isDocked = true;
         
-        // Update HUD
-        if (typeof HudManager !== 'undefined') {
-            HudManager.setDockingPromptVisible(false);
+        // Notify PlanetContentSystem of docking state
+        if (typeof PlanetContentSystem !== 'undefined') {
+            console.log('Notifying PlanetContentSystem of docking state:', {
+                docked: true,
+                planet: currentPlanet.userData.name,
+                planetObject: currentPlanet
+            });
+            PlanetContentSystem.setDockingState(true, currentPlanet);
+        } else {
+            console.error('PlanetContentSystem not available for docking notification');
         }
         
-        // Find nearest space station
-        const station = findNearestStation(planet);
-        if (station) {
-            setupDockingCamera(station);
+        // Create docking camera
+        if (!dockingCamera) {
+            dockingCamera = new THREE.PerspectiveCamera(
+                75,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
         }
         
-        console.log('Docking complete with:', planet.userData.name);
+        // Start docking animation
+        startDockingAnimation();
+        
+        // Log docking event
+        if (typeof LoggingSystem !== 'undefined') {
+            LoggingSystem.logEvent('docking_initiated', {
+                planet: currentPlanet.userData.name,
+                timestamp: new Date().toISOString()
+            });
+        }
     }
     
     /**
